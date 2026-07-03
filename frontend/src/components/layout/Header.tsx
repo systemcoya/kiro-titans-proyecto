@@ -10,7 +10,7 @@ export function Header() {
       <div className="flex items-center gap-2">
         <Activity size={22} className="text-primary" />
         <h1 className="text-base font-semibold text-foreground">
-          Rastreador de Costos IA — Cockpit Estratégico
+          FiNNova AI — Gestión Estratégica de Costos
         </h1>
       </div>
 

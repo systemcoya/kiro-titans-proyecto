@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { AlertCircle, Download, TrendingUp, TrendingDown, DollarSign, Activity, MessageCircle, Send } from 'lucide-react';
-import { useExecutiveDashboard } from './hooks/useExecutive';
+import { AlertCircle, Download, TrendingUp, TrendingDown, DollarSign, Activity, MessageCircle, Send, RefreshCw } from 'lucide-react';
+import { useExecutiveDashboard, type DashboardFilters } from './hooks/useExecutive';
 import { processQuestion } from './copilot-engine';
 
 function formatUsd(value: number): string {
@@ -29,10 +29,14 @@ const COPILOT_MESSAGES = [
  * One-pager with KPIs, 6-month trend, top services, and FinOps Copilot chat.
  */
 export default function ExecutivePage() {
-  const { data, isLoading } = useExecutiveDashboard();
+  const [filters, setFilters] = useState<DashboardFilters>({
+    month: '2026-06',
+    provider: '',
+    product: '',
+  });
   const [chatMessages, setChatMessages] = useState(COPILOT_MESSAGES);
   const [chatInput, setChatInput] = useState('');
-  const [chatIndex, setChatIndex] = useState(3);
+  const { data, isLoading, isFetching, refreshData } = useExecutiveDashboard(filters);
 
   const handleSendChat = () => {
     if (!chatInput.trim()) return;
@@ -65,49 +69,103 @@ export default function ExecutivePage() {
           <h1 className="text-3xl font-bold">Hola, Duvan 👋</h1>
           <p className="text-muted-foreground mt-1">Cloud & AI Value Manager — Venta de Pólizas de Autos</p>
         </div>
-        <button
-          onClick={() => window.open('/api/v1/executive/export-pdf')}
-          className="flex items-center gap-2 px-4 py-2 border rounded-md text-sm hover:bg-muted"
-        >
-          <Download className="h-4 w-4" /> Exportar PDF
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={refreshData}
+            disabled={isFetching}
+            className="flex items-center gap-2 px-4 py-2 border rounded-md text-sm hover:bg-muted disabled:opacity-50"
+            title="Refrescar datos (limpiar caché)"
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+            {isFetching ? 'Actualizando...' : 'Refrescar'}
+          </button>
+          <button
+            onClick={() => window.open('/api/v1/executive/export-pdf')}
+            className="flex items-center gap-2 px-4 py-2 border rounded-md text-sm hover:bg-muted"
+          >
+            <Download className="h-4 w-4" /> Exportar PDF
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 border rounded-lg bg-card shadow-sm">
+        <div>
+          <label className="text-xs text-muted-foreground">Mes</label>
+          <select
+            value={filters.month || ''}
+            onChange={(e) => setFilters({ ...filters, month: e.target.value })}
+            className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
+          >
+            <option value="2026-06">Junio 2026</option>
+            <option value="2026-01">Enero 2026</option>
+            <option value="2025-12">Diciembre 2025</option>
+            <option value="2025-06">Junio 2025</option>
+            <option value="2025-01">Enero 2025</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Proveedor</label>
+          <select
+            value={filters.provider || ''}
+            onChange={(e) => setFilters({ ...filters, provider: e.target.value })}
+            className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
+          >
+            <option value="">Todos</option>
+            <option value="AWS">AWS (Bedrock)</option>
+            <option value="GCP">GCP (Vertex AI)</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Producto</label>
+          <select
+            value={filters.product || ''}
+            onChange={(e) => setFilters({ ...filters, product: e.target.value })}
+            className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
+          >
+            <option value="">Todos</option>
+            <option value="Autos verde">Autos Verde</option>
+            <option value="Autos ligeros">Autos Ligeros</option>
+            <option value="Vehiculos pesados">Vehículos Pesados</option>
+          </select>
+        </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 border rounded-xl bg-card shadow-sm">
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
-            <DollarSign className="h-4 w-4" /> Gasto Total Mes (Jun 2026)
+            <DollarSign className="h-4 w-4" /> Gasto Total Mes
           </div>
-          <p className="text-2xl font-bold">{formatUsd(data?.currentMonthSpend || 12595)}</p>
+          <p className="text-2xl font-bold">{formatUsd(data?.totalSpend?.currentMonthCop || 0)}</p>
           <p className="text-xs text-muted-foreground mt-1">Cloud + AI + SaaS</p>
         </div>
 
-        <div className={`p-5 border rounded-xl shadow-sm ${(data?.variationPercentage || 28.7) > 15 ? 'bg-red-50 border-red-200' : 'bg-card'}`}>
+        <div className={`p-5 border rounded-xl shadow-sm ${Number(data?.totalSpend?.percentVariation || 0) > 15 ? 'bg-red-50 border-red-200' : 'bg-card'}`}>
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
-            {(data?.variationPercentage || 28.7) > 0 ? <TrendingUp className="h-4 w-4 text-red-500" /> : <TrendingDown className="h-4 w-4 text-green-500" />}
+            {Number(data?.totalSpend?.percentVariation || 0) > 0 ? <TrendingUp className="h-4 w-4 text-red-500" /> : <TrendingDown className="h-4 w-4 text-green-500" />}
             Variación vs. Mes Anterior
           </div>
-          <p className={`text-2xl font-bold ${(data?.variationPercentage || 28.7) > 15 ? 'text-red-600' : ''}`}>
-            +{(data?.variationPercentage || 28.7).toFixed(1)}%
+          <p className={`text-2xl font-bold ${Number(data?.totalSpend?.percentVariation || 0) > 15 ? 'text-red-600' : ''}`}>
+            {Number(data?.totalSpend?.percentVariation || 0) > 0 ? '+' : ''}{Number(data?.totalSpend?.percentVariation || 0).toFixed(1)}%
           </p>
-          <p className="text-xs text-muted-foreground mt-1">May → Jun 2026</p>
+          <p className="text-xs text-muted-foreground mt-1">Mes anterior → Mes actual</p>
         </div>
 
         <div className="p-5 border rounded-xl bg-card shadow-sm">
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
             <Activity className="h-4 w-4" /> Costo Unitario / Póliza
           </div>
-          <p className="text-2xl font-bold">{formatUsd(data?.avgCostPerTransaction || 4.50)}</p>
-          <p className="text-xs text-muted-foreground mt-1">$12,595 ÷ 2,800 pólizas emitidas</p>
+          <p className="text-2xl font-bold">{formatUsd(data?.avgCostPerTransaction?.value || 0)}</p>
+          <p className="text-xs text-muted-foreground mt-1">Costo promedio por transacción</p>
         </div>
 
         <div className="p-5 border rounded-xl bg-card shadow-sm">
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
             <AlertCircle className="h-4 w-4 text-red-500" /> Alertas Críticas
           </div>
-          <p className="text-2xl font-bold">{data?.criticalAlertsCount || 2}</p>
-          <p className="text-xs text-muted-foreground mt-1">Bedrock Claude 3, EC2 Cómputo</p>
+          <p className="text-2xl font-bold">{data?.criticalAlertsCount || 0}</p>
+          <p className="text-xs text-muted-foreground mt-1">Servicios en umbral crítico</p>
         </div>
       </div>
 
@@ -177,59 +235,49 @@ export default function ExecutivePage() {
       {/* Top services + Unit Economics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="border rounded-xl p-5 bg-card shadow-sm">
-          <h3 className="text-lg font-semibold mb-3">Top 5 Servicios por Gasto (Jun 2026)</h3>
+          <h3 className="text-lg font-semibold mb-3">Top 5 Servicios por Gasto</h3>
           <div className="space-y-3">
-            {[
-              { name: 'Bedrock (Claude 3) — CC 5100', cost: 1350, pct: 10.7 },
-              { name: 'Stripe Pagos (Todos los CC)', cost: 2790, pct: 22.2 },
-              { name: 'Mati / KYC Identidad', cost: 1400, pct: 11.1 },
-              { name: 'Vertex AI (Gemini Pro) — CC 5102', cost: 900, pct: 7.1 },
-              { name: 'EC2 Cómputo — CC 5100', cost: 800, pct: 6.4 },
-            ].map((svc, i) => (
-              <div key={svc.name} className="flex items-center gap-3">
-                <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
-                <div className="flex-1">
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium">{svc.name}</span>
-                    <span className="text-sm font-bold">{formatUsd(svc.cost)}</span>
+            {data?.topConsumers && data.topConsumers.length > 0 ? (
+              data.topConsumers.map((svc: any) => {
+                const totalSpend = data.totalSpend?.currentMonthCop || 1;
+                const pct = (svc.spendCop / totalSpend) * 100;
+                return (
+                  <div key={svc.name} className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-muted-foreground w-5">{svc.rank}</span>
+                    <div className="flex-1">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">{svc.name}</span>
+                        <span className="text-sm font-bold">{formatUsd(svc.spendCop)}</span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-1.5 mt-1">
+                        <div className="bg-primary h-1.5 rounded-full" style={{ width: `${Math.min(pct * 3, 100)}%` }} />
+                      </div>
+                    </div>
                   </div>
-                  <div className="w-full bg-muted rounded-full h-1.5 mt-1">
-                    <div className="bg-primary h-1.5 rounded-full" style={{ width: `${svc.pct * 3}%` }} />
-                  </div>
-                </div>
-              </div>
-            ))}
+                );
+              })
+            ) : (
+              <p className="text-sm text-muted-foreground">Sin datos disponibles</p>
+            )}
           </div>
         </div>
 
         <div className="border rounded-xl p-5 bg-card shadow-sm">
-          <h3 className="text-lg font-semibold mb-3">Unit Economics por Producto (Jun 2026)</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-2">Producto</th>
-                  <th className="py-2 text-right">Costo TI</th>
-                  <th className="py-2 text-right">Pólizas</th>
-                  <th className="py-2 text-right">$/Póliza</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { name: 'Autos Verde (5100)', cost: 4810, polizas: 1500, perPolicy: 3.21 },
-                  { name: 'Autos Ligeros (5101)', cost: 3645, polizas: 1000, perPolicy: 3.65 },
-                  { name: 'Vehículos Pesados (5102)', cost: 1900, polizas: 300, perPolicy: 6.33 },
-                  { name: 'Total App', cost: 12595, polizas: 2800, perPolicy: 4.50 },
-                ].map((row) => (
-                  <tr key={row.name} className={`border-b ${row.name === 'Total App' ? 'font-bold bg-muted/50' : ''}`}>
-                    <td className="py-2">{row.name}</td>
-                    <td className="py-2 text-right">{formatUsd(row.cost)}</td>
-                    <td className="py-2 text-right">{row.polizas.toLocaleString()}</td>
-                    <td className="py-2 text-right">{formatUsd(row.perPolicy)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <h3 className="text-lg font-semibold mb-3">Ratio de Autofundación</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Autofundación IA</span>
+              <span className="text-2xl font-bold text-green-600">{data?.selfFundingRatio || 0}%</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div 
+                className="bg-green-500 h-2 rounded-full" 
+                style={{ width: `${Math.min(data?.selfFundingRatio || 0, 100)}%` }} 
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Porcentaje de inversión IA recuperada por recomendaciones implementadas
+            </p>
           </div>
         </div>
       </div>

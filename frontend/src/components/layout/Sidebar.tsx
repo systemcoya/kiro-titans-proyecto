@@ -49,7 +49,7 @@ export function Sidebar() {
       <div className="flex items-center justify-between p-4 border-b border-border">
         {!collapsed && (
           <span className="text-sm font-semibold text-foreground truncate">
-            Cockpit FinOps
+            FiNNova AI
           </span>
         )}
         <button

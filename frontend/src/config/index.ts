@@ -4,5 +4,5 @@
  */
 export const config = {
   apiBaseUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1',
-  appName: 'Rastreador de Costos IA — Cockpit Estratégico',
+  appName: 'FiNNova AI — Gestión Estratégica de Costos',
 } as const;

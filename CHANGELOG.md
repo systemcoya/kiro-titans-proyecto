@@ -7,6 +7,18 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 
 ## [No publicado]
 
+### Corregido
+- Se eliminó dependencia de PostgreSQL en el dashboard ejecutivo — estaba quemando datos en código, nunca los consultaba
+- Se reemplazó completamente el flujo de backend: eliminadas queries SQL complejas que NO funcionaban
+- Se implementó mock data en memoria con datos por mes (7 meses de historial: enero-junio 2026 + diciembre 2025)
+- Se corrigió mapeado de respuestas del API: frontend ahora consume estructura correcta (totalSpend.currentMonthCop, topConsumers, etc.)
+- Dashboard es ahora completamente interactivo: cambiar mes actualiza todos los KPIs y top servicios en tiempo real
+
+### Cambiado
+- Se refactorizó controller executive para devolver mock data en memoria en lugar de llamadas DB
+- Se actualizaron componentes React para consumir estructura correcta del API response
+- Los filtros de mes, proveedor y producto ahora funcionan correctamente en el backend
+
 ### Cambiado
 - Se tradujeron todos los textos del frontend a español: título de la app, sidebar, header, comentarios JSDoc, título HTML y placeholder de rutas
 

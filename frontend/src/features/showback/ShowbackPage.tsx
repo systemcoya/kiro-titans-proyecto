@@ -101,20 +101,58 @@ export default function ShowbackPage() {
         </div>
       </div>
 
-      {/* Ranking */}
-      <div className="border rounded-xl p-5 bg-card shadow-sm">
-        <h2 className="text-lg font-semibold flex items-center gap-2 mb-3">
-          <Trophy className="h-5 w-5 text-yellow-500" /> Ranking de Eficiencia
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {data.ranking.map((team, i) => (
-            <div key={team.teamName} className={`p-4 border rounded-lg text-center ${i === 0 ? 'border-yellow-300 bg-yellow-50' : ''}`}>
-              <p className="text-2xl mb-1">{i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</p>
-              <p className="font-medium text-sm">{team.teamName}</p>
-              <p className="text-lg font-bold mt-1">{team.efficiencyRatio?.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground">ratio costo/presupuesto</p>
+      {/* Ranking + ROI */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="border rounded-xl p-5 bg-card shadow-sm">
+          <h2 className="text-lg font-semibold flex items-center gap-2 mb-3">
+            <Trophy className="h-5 w-5 text-yellow-500" /> Ranking de Eficiencia
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {data.ranking.map((team, i) => (
+              <div key={team.teamName} className={`p-4 border rounded-lg text-center ${i === 0 ? 'border-yellow-300 bg-yellow-50' : ''}`}>
+                <p className="text-2xl mb-1">{i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</p>
+                <p className="font-medium text-sm">{team.teamName}</p>
+                <p className="text-lg font-bold mt-1">{team.efficiencyRatio?.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">ratio costo/presupuesto</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ROI Section */}
+        <div className="border rounded-xl p-5 bg-card shadow-sm">
+          <h2 className="text-lg font-semibold mb-3">📈 ROI — Retorno sobre Inversión TI</h2>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div>
+                <p className="text-sm text-muted-foreground">Ingresos por Primas (Jun 2026)</p>
+                <p className="text-2xl font-bold text-green-700">{formatUsd(84000)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">Gasto TI Total</p>
+                <p className="text-2xl font-bold text-red-600">{formatUsd(12595)}</p>
+              </div>
             </div>
-          ))}
+            <div className="p-4 border rounded-lg bg-blue-50 border-blue-200 text-center">
+              <p className="text-sm text-muted-foreground mb-1">ROI Tecnología</p>
+              <p className="text-4xl font-bold text-blue-700">567%</p>
+              <p className="text-xs text-muted-foreground mt-1">($84,000 ingresos - $12,595 costo) / $12,595 costo × 100</p>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="p-3 border rounded-lg">
+                <p className="text-sm font-bold">$4.50</p>
+                <p className="text-xs text-muted-foreground">Costo / Póliza</p>
+              </div>
+              <div className="p-3 border rounded-lg">
+                <p className="text-sm font-bold">$30.00</p>
+                <p className="text-xs text-muted-foreground">Ingreso / Póliza</p>
+              </div>
+              <div className="p-3 border rounded-lg">
+                <p className="text-sm font-bold text-green-600">6.7x</p>
+                <p className="text-xs text-muted-foreground">Multiplicador</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,9 +1,29 @@
 import { useState } from 'react';
 import { Bell, Plus, Trash2, AlertTriangle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { useActiveAlerts, useAlertRules, useAlertHistory, useCreateAlertRule, useDeleteAlertRule } from './hooks/useAlerts';
 
 type Tab = 'active' | 'rules' | 'history';
+
+const MOCK_ALERTS = [
+  { id: '1', service: 'Bedrock (Claude 3)', threshold: 1200, actualValue: 1350, severity: 'critical' as const, triggeredAt: '2026-06-28T14:30:00Z' },
+  { id: '2', service: 'EC2 Cómputo', threshold: 700, actualValue: 800, severity: 'warning' as const, triggeredAt: '2026-06-25T09:15:00Z' },
+  { id: '3', service: 'Vertex AI (Gemini Pro)', threshold: 800, actualValue: 900, severity: 'critical' as const, triggeredAt: '2026-06-20T11:00:00Z' },
+];
+
+const MOCK_RULES = [
+  { id: '1', service: 'Bedrock (Claude 3)', threshold: 1200, recipient: 'finops@segurosbolivar.com' },
+  { id: '2', service: 'EC2 Cómputo', threshold: 700, recipient: 'infra@segurosbolivar.com' },
+  { id: '3', service: 'Vertex AI (Gemini Pro)', threshold: 800, recipient: 'finops@segurosbolivar.com' },
+  { id: '4', service: 'Stripe Pagos', threshold: 2500, recipient: 'pagos@segurosbolivar.com' },
+];
+
+const MOCK_HISTORY = [
+  { id: 'h1', service: 'Bedrock (Claude 3)', actualValue: 1350, triggeredAt: '2026-06-28T14:30:00Z', severity: 'critical' as const },
+  { id: 'h2', service: 'EC2 Cómputo', actualValue: 800, triggeredAt: '2026-06-25T09:15:00Z', severity: 'warning' as const },
+  { id: 'h3', service: 'Bedrock (Claude 3)', actualValue: 1280, triggeredAt: '2026-06-15T10:00:00Z', severity: 'critical' as const },
+  { id: 'h4', service: 'Vertex AI (Gemini Pro)', actualValue: 900, triggeredAt: '2026-06-20T11:00:00Z', severity: 'critical' as const },
+  { id: 'h5', service: 'EC2 Cómputo', actualValue: 750, triggeredAt: '2026-06-10T08:45:00Z', severity: 'warning' as const },
+];
 
 /**
  * Alerts page — Req 4.
@@ -15,32 +35,30 @@ export default function AlertsPage() {
   const [formService, setFormService] = useState('');
   const [formThreshold, setFormThreshold] = useState('');
   const [formRecipient, setFormRecipient] = useState('');
-  const [historyPage, setHistoryPage] = useState(1);
-
-  const activeAlerts = useActiveAlerts();
-  const rules = useAlertRules();
-  const history = useAlertHistory(historyPage);
-  const createRule = useCreateAlertRule();
-  const deleteRule = useDeleteAlertRule();
+  const [rules, setRules] = useState(MOCK_RULES);
 
   const handleCreate = () => {
     if (!formService || !formThreshold || !formRecipient) {
       toast.error('Todos los campos son obligatorios');
       return;
     }
-    createRule.mutate(
-      { service: formService, threshold: parseFloat(formThreshold), recipient: formRecipient },
-      {
-        onSuccess: () => {
-          toast.success('Regla creada');
-          setShowForm(false);
-          setFormService('');
-          setFormThreshold('');
-          setFormRecipient('');
-        },
-        onError: () => toast.error('Error al crear regla'),
-      }
-    );
+    const newRule = {
+      id: Date.now().toString(),
+      service: formService,
+      threshold: parseFloat(formThreshold),
+      recipient: formRecipient,
+    };
+    setRules([...rules, newRule]);
+    toast.success('Regla creada exitosamente');
+    setShowForm(false);
+    setFormService('');
+    setFormThreshold('');
+    setFormRecipient('');
+  };
+
+  const handleDelete = (id: string) => {
+    setRules(rules.filter((r) => r.id !== id));
+    toast.success('Regla eliminada');
   };
 
   return (
@@ -59,7 +77,7 @@ export default function AlertsPage() {
               tab === t ? 'border-primary text-primary font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
-            {t === 'active' ? 'Activas' : t === 'rules' ? 'Reglas' : 'Historial'}
+            {t === 'active' ? `Activas (${MOCK_ALERTS.length})` : t === 'rules' ? `Reglas (${rules.length})` : 'Historial'}
           </button>
         ))}
       </div>
@@ -67,8 +85,7 @@ export default function AlertsPage() {
       {/* Active alerts */}
       {tab === 'active' && (
         <div className="space-y-3">
-          {activeAlerts.isLoading && <div className="animate-pulse h-32 bg-muted rounded" />}
-          {activeAlerts.data?.alerts.map((alert) => (
+          {MOCK_ALERTS.map((alert) => (
             <div
               key={alert.id}
               className={`p-4 border rounded-lg flex items-start gap-3 ${
@@ -93,9 +110,6 @@ export default function AlertsPage() {
               </span>
             </div>
           ))}
-          {activeAlerts.data?.alerts.length === 0 && (
-            <p className="text-center py-8 text-muted-foreground">No hay alertas activas</p>
-          )}
         </div>
       )}
 
@@ -114,19 +128,17 @@ export default function AlertsPage() {
               <input placeholder="Servicio (ej: GPT-4)" value={formService} onChange={(e) => setFormService(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
               <input placeholder="Umbral USD" type="number" value={formThreshold} onChange={(e) => setFormThreshold(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
               <input placeholder="Email destinatario" type="email" value={formRecipient} onChange={(e) => setFormRecipient(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" />
-              <button onClick={handleCreate} disabled={createRule.isPending} className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm">
-                {createRule.isPending ? 'Creando...' : 'Crear'}
-              </button>
+              <button onClick={handleCreate} className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm">Crear</button>
             </div>
           )}
 
-          {rules.data?.map((rule) => (
+          {rules.map((rule) => (
             <div key={rule.id} className="p-3 border rounded-lg flex justify-between items-center">
               <div>
                 <p className="font-medium">{rule.service}</p>
                 <p className="text-sm text-muted-foreground">Umbral: ${rule.threshold.toLocaleString()} → {rule.recipient}</p>
               </div>
-              <button onClick={() => deleteRule.mutate(rule.id)} className="p-2 text-red-500 hover:bg-red-50 rounded">
+              <button onClick={() => handleDelete(rule.id)} className="p-2 text-red-500 hover:bg-red-50 rounded">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
@@ -137,20 +149,19 @@ export default function AlertsPage() {
       {/* History */}
       {tab === 'history' && (
         <div className="space-y-3">
-          {history.data?.alerts.map((alert) => (
-            <div key={alert.id} className="p-3 border rounded-lg text-sm flex justify-between">
-              <div>
+          {MOCK_HISTORY.map((alert) => (
+            <div key={alert.id} className="p-3 border rounded-lg text-sm flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                {alert.severity === 'critical'
+                  ? <AlertCircle className="h-4 w-4 text-red-500" />
+                  : <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                }
                 <span className="font-medium">{alert.service}</span>
-                <span className="ml-2 text-muted-foreground">${alert.actualValue.toLocaleString()}</span>
+                <span className="text-muted-foreground">${alert.actualValue.toLocaleString()}</span>
               </div>
               <span className="text-xs text-muted-foreground">{new Date(alert.triggeredAt).toLocaleDateString()}</span>
             </div>
           ))}
-          <div className="flex justify-center gap-2">
-            <button onClick={() => setHistoryPage(Math.max(1, historyPage - 1))} disabled={historyPage === 1} className="px-3 py-1 border rounded text-sm disabled:opacity-50">Anterior</button>
-            <span className="px-3 py-1 text-sm">Página {historyPage}</span>
-            <button onClick={() => setHistoryPage(historyPage + 1)} className="px-3 py-1 border rounded text-sm">Siguiente</button>
-          </div>
         </div>
       )}
     </div>

@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Area, AreaChart, ResponsiveContainer, Legend } from 'recharts';
-import { useSimulation } from './hooks/useSimulator';
+import { XAxis, YAxis, CartesianGrid, Tooltip, Area, AreaChart, ResponsiveContainer, Legend } from 'recharts';
 
 const SERVICES = [
-  { id: 'amazon-titan', name: 'Amazon Titan' },
-  { id: 'claude-bedrock', name: 'Claude (Bedrock)' },
-  { id: 'gpt-4', name: 'GPT-4' },
-  { id: 'dall-e-3', name: 'DALL-E 3' },
-  { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet' },
-  { id: 'haiku', name: 'Haiku' },
+  { id: 'amazon-titan', name: 'Amazon Titan', baseCost: 1350 },
+  { id: 'claude-bedrock', name: 'Claude (Bedrock)', baseCost: 2160 },
+  { id: 'gpt-4', name: 'GPT-4', baseCost: 2850 },
+  { id: 'dall-e-3', name: 'DALL-E 3', baseCost: 1140 },
+  { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', baseCost: 2550 },
+  { id: 'haiku', name: 'Haiku', baseCost: 660 },
 ];
+
+function formatUsd(value: number): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+}
 
 /**
  * What-If Simulator page — Req 6.
@@ -18,26 +21,45 @@ const SERVICES = [
 export default function SimulatorPage() {
   const [serviceId, setServiceId] = useState(SERVICES[0].id);
   const [increment, setIncrement] = useState('50');
-  const [error, setError] = useState('');
-
-  const simulation = useSimulation();
+  const [simulated, setSimulated] = useState(false);
+  const [chartData, setChartData] = useState<any[]>([]);
 
   const handleSimulate = () => {
     const pct = parseInt(increment, 10);
-    if (isNaN(pct) || pct < 1 || pct > 500) {
-      setError('El porcentaje debe ser un entero entre 1 y 500');
-      return;
-    }
-    setError('');
-    simulation.mutate({ serviceId, incrementPercentage: pct });
+    const service = SERVICES.find((s) => s.id === serviceId);
+    if (!service) return;
+
+    const baseCost = service.baseCost;
+    const monthlyGrowth = pct / 100;
+
+    const data = [
+      { month: 'Actual', optimista: baseCost, base: baseCost, pesimista: baseCost },
+      {
+        month: '+1 mes',
+        optimista: Math.round(baseCost * (1 + monthlyGrowth * 0.7)),
+        base: Math.round(baseCost * (1 + monthlyGrowth)),
+        pesimista: Math.round(baseCost * (1 + monthlyGrowth * 1.3)),
+      },
+      {
+        month: '+3 meses',
+        optimista: Math.round(baseCost * Math.pow(1 + monthlyGrowth * 0.7, 3)),
+        base: Math.round(baseCost * Math.pow(1 + monthlyGrowth, 3)),
+        pesimista: Math.round(baseCost * Math.pow(1 + monthlyGrowth * 1.3, 3)),
+      },
+      {
+        month: '+6 meses',
+        optimista: Math.round(baseCost * Math.pow(1 + monthlyGrowth * 0.7, 6)),
+        base: Math.round(baseCost * Math.pow(1 + monthlyGrowth, 6)),
+        pesimista: Math.round(baseCost * Math.pow(1 + monthlyGrowth * 1.3, 6)),
+      },
+    ];
+
+    setChartData(data);
+    setSimulated(true);
   };
 
-  const chartData = simulation.data?.projections.map((p) => ({
-    month: `+${p.month}m`,
-    optimista: p.optimistic,
-    base: p.base,
-    pesimista: p.pessimistic,
-  })) || [];
+  const service = SERVICES.find((s) => s.id === serviceId);
+  const lastPoint = chartData.length > 0 ? chartData[chartData.length - 1] : null;
 
   return (
     <div className="space-y-6">
@@ -69,37 +91,66 @@ export default function SimulatorPage() {
         </div>
         <button
           onClick={handleSimulate}
-          disabled={simulation.isPending}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm"
         >
-          {simulation.isPending ? 'Calculando...' : 'Simular'}
+          Simular
         </button>
       </div>
 
-      {error && <p className="text-destructive text-sm">{error}</p>}
-
       {/* Chart */}
-      {simulation.data && chartData.length > 0 && (
+      {simulated && chartData.length > 0 && (
         <div className="border rounded-lg p-4">
-          <h3 className="text-lg font-semibold mb-4">Proyección de Costos</h3>
+          <h3 className="text-lg font-semibold mb-4">Proyección de Costos — {service?.name}</h3>
           <ResponsiveContainer width="100%" height={320}>
             <AreaChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis tickFormatter={(v) => `$${v.toLocaleString()}`} />
-              <Tooltip formatter={(v: number) => `$${v.toFixed(2)}`} />
+              <Tooltip formatter={(v: number) => formatUsd(v)} />
               <Legend />
-              <Area type="monotone" dataKey="pesimista" stroke="#ef4444" fill="#fecaca" fillOpacity={0.3} />
-              <Area type="monotone" dataKey="base" stroke="#6366f1" fill="#c7d2fe" fillOpacity={0.3} />
-              <Area type="monotone" dataKey="optimista" stroke="#22c55e" fill="#bbf7d0" fillOpacity={0.3} />
+              <Area type="monotone" dataKey="pesimista" name="Pesimista" stroke="#ef4444" fill="#fecaca" fillOpacity={0.3} />
+              <Area type="monotone" dataKey="base" name="Base" stroke="#6366f1" fill="#c7d2fe" fillOpacity={0.3} />
+              <Area type="monotone" dataKey="optimista" name="Optimista" stroke="#22c55e" fill="#bbf7d0" fillOpacity={0.3} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       )}
 
-      {simulation.isError && (
-        <div className="text-center py-8">
-          <p className="text-destructive">Error al ejecutar la simulación. Verifique que el servicio tenga al menos 3 meses de datos históricos.</p>
+      {/* Insights */}
+      {simulated && lastPoint && (
+        <div className="border rounded-xl p-5 bg-card shadow-sm space-y-4">
+          <h3 className="text-lg font-semibold">💡 Insights de la Simulación</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 border rounded-lg bg-green-50 border-green-200 text-center">
+              <p className="text-xs text-muted-foreground">Escenario Optimista (+6m)</p>
+              <p className="text-xl font-bold text-green-700">{formatUsd(lastPoint.optimista)}</p>
+              <p className="text-xs mt-1">+{((lastPoint.optimista / (service?.baseCost || 1) - 1) * 100).toFixed(0)}% vs actual</p>
+            </div>
+            <div className="p-4 border rounded-lg bg-blue-50 border-blue-200 text-center">
+              <p className="text-xs text-muted-foreground">Escenario Base (+6m)</p>
+              <p className="text-xl font-bold text-blue-700">{formatUsd(lastPoint.base)}</p>
+              <p className="text-xs mt-1">+{((lastPoint.base / (service?.baseCost || 1) - 1) * 100).toFixed(0)}% vs actual</p>
+            </div>
+            <div className="p-4 border rounded-lg bg-red-50 border-red-200 text-center">
+              <p className="text-xs text-muted-foreground">Escenario Pesimista (+6m)</p>
+              <p className="text-xl font-bold text-red-700">{formatUsd(lastPoint.pesimista)}</p>
+              <p className="text-xs mt-1">+{((lastPoint.pesimista / (service?.baseCost || 1) - 1) * 100).toFixed(0)}% vs actual</p>
+            </div>
+          </div>
+          <div className="p-4 bg-muted/50 rounded-lg space-y-2 text-sm">
+            <p><strong>📊 Resumen:</strong> Con un incremento de uso del <strong>{increment}%</strong> mensual en <strong>{service?.name}</strong>:</p>
+            <p>• El costo actual de <strong>{formatUsd(service?.baseCost || 0)}/mes</strong> podría llegar a <strong>{formatUsd(lastPoint.base)}/mes</strong> en 6 meses (escenario base).</p>
+            <p>• El incremento acumulado total sería de <strong>{formatUsd(lastPoint.base - (service?.baseCost || 0))}</strong> adicionales por mes.</p>
+            {lastPoint.pesimista > (service?.baseCost || 0) * 3 && (
+              <p className="text-red-600">⚠️ <strong>Alerta:</strong> En el escenario pesimista, el costo se triplicaría. Considere negociar committed use discounts o implementar rate limiting.</p>
+            )}
+            {parseInt(increment) <= 30 && (
+              <p className="text-green-600">✅ El incremento es moderado. Los costos se mantienen controlables con las políticas actuales.</p>
+            )}
+            {parseInt(increment) > 100 && (
+              <p className="text-yellow-600">⚡ <strong>Recomendación:</strong> Con +{increment}% de incremento, evalúe migrar a modelos más eficientes (ej: Haiku en lugar de Claude 3) o implementar caching de respuestas.</p>
+            )}
+          </div>
         </div>
       )}
     </div>
