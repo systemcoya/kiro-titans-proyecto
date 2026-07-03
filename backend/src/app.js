@@ -5,11 +5,22 @@ const { correlationId } = require('./middleware/correlation-id');
 const { auth } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/error-handler');
 
-// Route modules
+// Route modules — Sergio (core)
 const costRoutes = require('./routes/cost.routes');
 const unitEconomicsRoutes = require('./routes/unit-economics.routes');
 const showbackRoutes = require('./routes/showback.routes');
 const megabillRoutes = require('./routes/megabill.routes');
+
+// Route modules — Jorge (advanced services)
+const alertsRoutes = require('./routes/alerts.routes');
+const simulatorRoutes = require('./routes/simulator.routes');
+const governanceRoutes = require('./routes/governance.routes');
+const taggingRoutes = require('./routes/tagging.routes');
+const anomalyRoutes = require('./routes/anomaly-detection.routes');
+const executiveRoutes = require('./routes/executive.routes');
+const selfFundingRoutes = require('./routes/self-funding.routes');
+const costAvoidanceRoutes = require('./routes/cost-avoidance.routes');
+const finopsSummaryController = require('./controllers/finops-summary.controller');
 
 const app = express();
 
@@ -54,15 +65,16 @@ app.use('/api/v1/costs', unitEconomicsRoutes);
 app.use('/api/v1/costs', showbackRoutes);
 app.use('/api/v1/costs', megabillRoutes);
 
-// TODO: Register these routes when their modules are implemented:
-// app.use('/api/v1/alerts', alertRoutes);
-// app.use('/api/v1/simulator', simulatorRoutes);
-// app.use('/api/v1/governance', governanceRoutes);
-// app.use('/api/v1/tagging', taggingRoutes);
-// app.use('/api/v1/anomalies', anomalyRoutes);
-// app.use('/api/v1/executive', executiveRoutes);
-// app.use('/api/v1/self-funding', selfFundingRoutes);
-// app.use('/api/v1/cost-avoidance', costAvoidanceRoutes);
+// Jorge's advanced services
+app.use('/api/v1/alerts', alertsRoutes);
+app.use('/api/v1/simulator', simulatorRoutes);
+app.use('/api/v1/governance', governanceRoutes);
+app.use('/api/v1/tagging', taggingRoutes);
+app.use('/api/v1/anomalies', anomalyRoutes);
+app.use('/api/v1/executive', executiveRoutes);
+app.use('/api/v1/self-funding', selfFundingRoutes);
+app.use('/api/v1/cost-avoidance', costAvoidanceRoutes);
+app.get('/api/v1/finops/summary', finopsSummaryController.getSummary);
 
 // Error handler — must be last middleware
 app.use(errorHandler);
