@@ -7,9 +7,15 @@ const MOCK_TOKEN = 'Bearer mock-jwt-token-hackathon';
  * Integration Tests — Task 16.3
  * Validates all API endpoints respond correctly with proper status codes,
  * authentication, and response structure.
+ *
+ * NOTE: These tests require a running PostgreSQL database with seeded data.
+ * Skip in CI environments without DB: set DB_SKIP_INTEGRATION=true
  */
 
-describe('API Integration Tests', () => {
+const SKIP = process.env.DB_SKIP_INTEGRATION === 'true' || !process.env.DATABASE_URL;
+const describeOrSkip = SKIP ? describe.skip : describe;
+
+describeOrSkip('API Integration Tests', () => {
   describe('Authentication', () => {
     it('returns 401 when no token provided', async () => {
       const res = await request(app).get('/api/v1/alerts');
