@@ -149,8 +149,37 @@ const getShowback = async (month) => {
   return { teams: showbackRows, ranking };
 };
 
+/**
+ * Calculates budget percentage for a team.
+ * @param {number} totalCost - Total cost for the team
+ * @param {number|null} budget - Assigned budget (null or 0 means no budget)
+ * @returns {{ budgetPercentage: number|null, excludeFromRanking: boolean }}
+ */
+function calculateBudgetPercentage(totalCost, budget) {
+  if (budget === null || budget === 0) {
+    return { budgetPercentage: null, excludeFromRanking: true };
+  }
+  const budgetPercentage = parseFloat(((totalCost / budget) * 100).toFixed(1));
+  return { budgetPercentage, excludeFromRanking: false };
+}
+
+/**
+ * Determines if a team has exceeded its budget.
+ * @param {number} totalCost - Total cost for the team
+ * @param {number|null} budget - Assigned budget (null or 0 means no budget)
+ * @returns {{ overBudget: boolean }}
+ */
+function determineBudgetExceeded(totalCost, budget) {
+  if (budget === null || budget === 0) {
+    return { overBudget: false };
+  }
+  return { overBudget: totalCost > budget };
+}
+
 module.exports = {
   getShowback,
   getMonthBoundaries,
   distributeCostProportionally,
+  calculateBudgetPercentage,
+  determineBudgetExceeded,
 };
