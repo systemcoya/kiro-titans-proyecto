@@ -65,6 +65,7 @@ app.use('/api/v1/simulator', require('./routes/simulator.routes'));
 app.use('/api/v1/governance', require('./routes/governance.routes'));
 app.use('/api/v1/self-funding', require('./routes/self-funding.routes'));
 app.use('/api/v1/executive', require('./routes/executive.routes'));
+app.use('/api/v1/sheets', require('./routes/sheets-sync.routes'));
 app.get('/api/v1/finops/summary', require('./controllers/finops-summary.controller').getSummary);
 
 // Error handler — must be last middleware
