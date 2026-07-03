@@ -121,20 +121,21 @@ export default function ExecutivePage() {
           <h3 className="text-lg font-semibold mb-4">Tendencia de Gasto — 2026</h3>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={[
-              { month: 'Ene', cloud: 2870, ai: 2070, saas: 3580 },
-              { month: 'Feb', cloud: 3010, ai: 2070, saas: 3600 },
-              { month: 'Mar', cloud: 3270, ai: 2070, saas: 3700 },
-              { month: 'Abr', cloud: 3380, ai: 2070, saas: 3800 },
-              { month: 'May', cloud: 3500, ai: 2070, saas: 4200 },
-              { month: 'Jun', cloud: 3670, ai: 2835, saas: 6090 },
+              { month: 'Ene', cloud: 2870, ai: 2070, saas: 3580, primas: 45000 },
+              { month: 'Feb', cloud: 3010, ai: 2070, saas: 3600, primas: 52500 },
+              { month: 'Mar', cloud: 3270, ai: 2070, saas: 3700, primas: 63000 },
+              { month: 'Abr', cloud: 3380, ai: 2070, saas: 3800, primas: 69000 },
+              { month: 'May', cloud: 3500, ai: 2070, saas: 4200, primas: 75000 },
+              { month: 'Jun', cloud: 3670, ai: 2835, saas: 6090, primas: 84000 },
             ]}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
               <Tooltip formatter={(v: number) => formatUsd(v)} />
-              <Bar dataKey="cloud" name="Cloud (AWS+GCP)" fill="#3b82f6" stackId="a" />
-              <Bar dataKey="ai" name="AI (Bedrock+Vertex)" fill="#8b5cf6" stackId="a" />
-              <Bar dataKey="saas" name="SaaS (Stripe+Twilio+Otros)" fill="#f97316" stackId="a" />
+              <Bar dataKey="primas" name="Primas Emitidas (Ingreso)" fill="#d1fae5" stroke="#10b981" strokeWidth={1} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="cloud" name="Cloud (AWS+GCP)" fill="#3b82f6" stackId="costos" />
+              <Bar dataKey="ai" name="AI (Bedrock+Vertex)" fill="#8b5cf6" stackId="costos" />
+              <Bar dataKey="saas" name="SaaS (Stripe+Twilio+Otros)" fill="#f97316" stackId="costos" />
             </BarChart>
           </ResponsiveContainer>
         </div>
