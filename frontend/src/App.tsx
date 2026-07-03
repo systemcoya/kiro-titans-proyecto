@@ -19,20 +19,6 @@ const CostAvoidancePage = lazy(() => import('@/features/cost-avoidance/CostAvoid
 const TaggingPage = lazy(() => import('@/features/tagging/TaggingPage'));
 const AnomaliesPage = lazy(() => import('@/features/anomalies/AnomaliesPage'));
 
-// Lazy-loaded feature pages
-const ExecutivePage = lazy(() => import('@/features/executive/ExecutivePage'));
-const AISpendPage = lazy(() => import('@/features/ai-spend/AISpendPage'));
-const UnitEconomicsPage = lazy(() => import('@/features/unit-economics/UnitEconomicsPage'));
-const ShowbackPage = lazy(() => import('@/features/showback/ShowbackPage'));
-const AlertsPage = lazy(() => import('@/features/alerts/AlertsPage'));
-const MegaBillPage = lazy(() => import('@/features/megabill/MegaBillPage'));
-const SimulatorPage = lazy(() => import('@/features/simulator/SimulatorPage'));
-const GovernancePage = lazy(() => import('@/features/governance/GovernancePage'));
-const SelfFundingPage = lazy(() => import('@/features/self-funding/SelfFundingPage'));
-const CostAvoidancePage = lazy(() => import('@/features/cost-avoidance/CostAvoidancePage'));
-const TaggingPage = lazy(() => import('@/features/tagging/TaggingPage'));
-const AnomaliesPage = lazy(() => import('@/features/anomalies/AnomaliesPage'));
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
