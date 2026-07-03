@@ -3,124 +3,196 @@
 const { readSheet, getSheetNames } = require('../config/google-sheets');
 
 /**
- * Sheets Sync Service — Reads data from Google Sheets and transforms it
- * into the format expected by the existing services/repositories.
+ * Sheets Sync Service — Reads REAL data from the team's Google Sheets.
  *
- * This replaces the static mock/seed.js data with live spreadsheet data.
+ * Sheet structure:
+ * - "Costos AI": Mes, Proveedor, Servicio_AI, Centro_Costos, Producto, Llamadas_API, Tokens_Consumidos, Costo_AI_USD, Aplicacion
+ * - "Costos de infra": Mes, Proveedor, Servicio, Costo_Infraestructura_USD, Aplicacion, Producto, Centro_Costos
+ * - "Otros costos": Mes, Proveedor/Plataforma, Concepto_Gasto, Centro_Costos, Producto, Unidad_Medida, Consumo_Cantidad, Costo_Total_USD, Aplicacion
+ * - "Pólizas emitidas": Mes, Producto, Centro_Costos, Polizas_Emitidas, Primas_Emitidas_USD
  */
 
 /**
- * Sync all data from Google Sheets.
- * Returns structured data for each domain entity.
+ * Sync all sheets and return structured data.
  * @returns {Promise<object>}
  */
 const syncAllData = async () => {
-  const sheetNames = await getSheetNames();
-  console.log('[sheets-sync] Hojas encontradas:', sheetNames);
+  const [aiCosts, infraCosts, otherCosts, policies] = await Promise.all([
+    getAICosts(),
+    getInfraCosts(),
+    getOtherCosts(),
+    getPoliciesEmitted(),
+  ]);
 
-  const result = {};
+  return {
+    aiCosts,
+    infraCosts,
+    otherCosts,
+    policies,
+    syncedAt: new Date().toISOString(),
+  };
+};
 
-  for (const name of sheetNames) {
-    try {
-      const { headers, rows } = await readSheet(name);
-      result[name] = { headers, rows, count: rows.length };
-      console.log(`[sheets-sync] ${name}: ${rows.length} registros`);
-    } catch (err) {
-      console.error(`[sheets-sync] Error leyendo hoja "${name}":`, err.message);
-      result[name] = { headers: [], rows: [], count: 0, error: err.message };
-    }
+/**
+ * Get AI costs from "Costos AI" sheet.
+ * @returns {Promise<Array<object>>}
+ */
+const getAICosts = async () => {
+  const { rows } = await readSheet('Costos AI');
+  return rows.map((row) => ({
+    mes: row.Mes,
+    proveedor: row.Proveedor,
+    servicioAI: row.Servicio_AI,
+    centroCostos: row.Centro_Costos,
+    producto: row.Producto,
+    llamadasApi: parseInt(row.Llamadas_API || 0, 10),
+    tokensConsumidos: parseInt(row.Tokens_Consumidos || 0, 10),
+    costoAiUsd: parseFloat(row.Costo_AI_USD || 0),
+    aplicacion: row.Aplicacion,
+  }));
+};
+
+/**
+ * Get infrastructure costs from "Costos de infra" sheet.
+ * @returns {Promise<Array<object>>}
+ */
+const getInfraCosts = async () => {
+  const { rows } = await readSheet('Costos de infra');
+  return rows.map((row) => ({
+    mes: row.Mes,
+    proveedor: row.Proveedor,
+    servicio: row.Servicio,
+    costoInfraUsd: parseFloat(row.Costo_Infraestructura_USD || 0),
+    aplicacion: row.Aplicacion,
+    producto: row.Producto,
+    centroCostos: row.Centro_Costos,
+  }));
+};
+
+/**
+ * Get other costs (SaaS, licenses) from "Otros costos" sheet.
+ * @returns {Promise<Array<object>>}
+ */
+const getOtherCosts = async () => {
+  const { rows } = await readSheet('Otros costos');
+  return rows.map((row) => ({
+    mes: row.Mes,
+    proveedor: row['Proveedor/Plataforma'],
+    conceptoGasto: row.Concepto_Gasto,
+    centroCostos: row.Centro_Costos,
+    producto: row.Producto,
+    unidadMedida: row.Unidad_Medida,
+    consumoCantidad: parseInt(row.Consumo_Cantidad || 0, 10),
+    costoTotalUsd: parseFloat(row.Costo_Total_USD || 0),
+    aplicacion: row.Aplicacion,
+  }));
+};
+
+/**
+ * Get policies emitted from "Pólizas emitidas" sheet.
+ * Used for Unit Economics calculations (transactions = pólizas).
+ * @returns {Promise<Array<object>>}
+ */
+const getPoliciesEmitted = async () => {
+  const { rows } = await readSheet('Pólizas emitidas');
+  return rows.map((row) => ({
+    mes: row.Mes,
+    producto: row.Producto,
+    centroCostos: row.Centro_Costos,
+    polizasEmitidas: parseInt(row.Polizas_Emitidas || 0, 10),
+    primasEmitidasUsd: parseFloat(row.Primas_Emitidas_USD || 0),
+  }));
+};
+
+/**
+ * Get consolidated MegaBill view (AI + Infra + Other costs).
+ * @returns {Promise<Array<object>>}
+ */
+const getMegaBillConsolidated = async () => {
+  const [ai, infra, other] = await Promise.all([getAICosts(), getInfraCosts(), getOtherCosts()]);
+
+  const megabill = [];
+
+  for (const row of ai) {
+    megabill.push({
+      mes: row.mes,
+      serviceName: row.servicioAI,
+      provider: row.proveedor,
+      category: 'ai',
+      billedCostUsd: row.costoAiUsd,
+      producto: row.producto,
+      centroCostos: row.centroCostos,
+    });
   }
 
-  return result;
+  for (const row of infra) {
+    megabill.push({
+      mes: row.mes,
+      serviceName: row.servicio,
+      provider: row.proveedor,
+      category: 'cloud',
+      billedCostUsd: row.costoInfraUsd,
+      producto: row.producto,
+      centroCostos: row.centroCostos,
+    });
+  }
+
+  for (const row of other) {
+    megabill.push({
+      mes: row.mes,
+      serviceName: row.conceptoGasto,
+      provider: row.proveedor,
+      category: 'saas',
+      billedCostUsd: row.costoTotalUsd,
+      producto: row.producto,
+      centroCostos: row.centroCostos,
+    });
+  }
+
+  return megabill;
 };
 
 /**
- * Read AI costs data from the spreadsheet.
- * Expects a sheet with columns like: service_name, provider, team, cost_usd, tokens, inferences, gpu_hours, date
- * @param {string} [sheetName='Costos AI'] - Name of the sheet tab
+ * Get Unit Economics: cost per policy emitted per product.
  * @returns {Promise<Array<object>>}
  */
-const getAICostsFromSheet = async (sheetName = 'Costos AI') => {
-  const { rows } = await readSheet(sheetName);
-  return rows.map((row) => ({
-    serviceName: row.service_name || row.servicio || row.ServiceName || '',
-    provider: row.provider || row.proveedor || row.Provider || '',
-    team: row.team || row.equipo || row.Team || '',
-    costUsd: parseFloat(row.cost_usd || row.costo_usd || row.CostUSD || 0),
-    tokens: parseInt(row.tokens || row.Tokens || 0, 10),
-    inferences: parseInt(row.inferences || row.inferencias || row.Inferences || 0, 10),
-    gpuHours: parseFloat(row.gpu_hours || row.GPU_Hours || 0),
-    costDate: row.cost_date || row.fecha || row.Date || new Date().toISOString().split('T')[0],
-  }));
-};
+const getUnitEconomics = async () => {
+  const [aiCosts, policies] = await Promise.all([getAICosts(), getPoliciesEmitted()]);
 
-/**
- * Read teams/cells data from the spreadsheet.
- * @param {string} [sheetName='Equipos'] - Name of the sheet tab
- * @returns {Promise<Array<object>>}
- */
-const getTeamsFromSheet = async (sheetName = 'Equipos') => {
-  const { rows } = await readSheet(sheetName);
-  return rows.map((row) => ({
-    name: row.name || row.nombre || row.Name || '',
-    budgetMonthly: parseFloat(row.budget_monthly || row.presupuesto || row.Budget || 0),
-    department: row.department || row.departamento || row.Department || '',
-  }));
-};
+  // Group AI costs by month+product
+  const costsByKey = {};
+  for (const row of aiCosts) {
+    const key = `${row.mes}|${row.producto}`;
+    if (!costsByKey[key]) costsByKey[key] = 0;
+    costsByKey[key] += row.costoAiUsd;
+  }
 
-/**
- * Read alert rules from the spreadsheet.
- * @param {string} [sheetName='Alertas']
- * @returns {Promise<Array<object>>}
- */
-const getAlertsFromSheet = async (sheetName = 'Alertas') => {
-  const { rows } = await readSheet(sheetName);
-  return rows.map((row) => ({
-    service: row.service || row.servicio || '',
-    threshold: parseFloat(row.threshold || row.umbral || 0),
-    recipient: row.recipient || row.destinatario || row.email || '',
-  }));
-};
+  // Join with policies
+  return policies.map((pol) => {
+    const key = `${pol.mes}|${pol.producto}`;
+    const totalCostUsd = costsByKey[key] || 0;
+    const unitCost = pol.polizasEmitidas > 0
+      ? parseFloat((totalCostUsd / pol.polizasEmitidas).toFixed(4))
+      : null;
 
-/**
- * Read unit economics data from the spreadsheet.
- * @param {string} [sheetName='Unit Economics']
- * @returns {Promise<Array<object>>}
- */
-const getUnitEconomicsFromSheet = async (sheetName = 'Unit Economics') => {
-  const { rows } = await readSheet(sheetName);
-  return rows.map((row) => ({
-    serviceName: row.service_name || row.servicio || '',
-    useCase: row.use_case || row.caso_uso || '',
-    totalCostUsd: parseFloat(row.total_cost_usd || row.costo_total || 0),
-    transactionsProcessed: parseInt(row.transactions_processed || row.transacciones || 0, 10),
-    periodStart: row.period_start || row.inicio_periodo || '',
-    periodEnd: row.period_end || row.fin_periodo || '',
-  }));
-};
-
-/**
- * Read MegaBill data from the spreadsheet.
- * @param {string} [sheetName='MegaBill']
- * @returns {Promise<Array<object>>}
- */
-const getMegaBillFromSheet = async (sheetName = 'MegaBill') => {
-  const { rows } = await readSheet(sheetName);
-  return rows.map((row) => ({
-    serviceName: row.service_name || row.servicio || '',
-    billedCost: parseFloat(row.billed_cost || row.costo || 0),
-    usageQuantity: parseFloat(row.usage_quantity || row.cantidad_uso || 0),
-    provider: row.provider || row.proveedor || '',
-    category: row.category || row.categoria || 'cloud',
-    costDate: row.cost_date || row.fecha || '',
-  }));
+    return {
+      mes: pol.mes,
+      producto: pol.producto,
+      totalCostAiUsd: totalCostUsd,
+      polizasEmitidas: pol.polizasEmitidas,
+      primasEmitidasUsd: pol.primasEmitidasUsd,
+      costoPorPolizaUsd: unitCost,
+      costoPorPolizaCop: unitCost !== null ? Math.round(unitCost * 4200) : null,
+    };
+  });
 };
 
 module.exports = {
   syncAllData,
-  getAICostsFromSheet,
-  getTeamsFromSheet,
-  getAlertsFromSheet,
-  getUnitEconomicsFromSheet,
-  getMegaBillFromSheet,
+  getAICosts,
+  getInfraCosts,
+  getOtherCosts,
+  getPoliciesEmitted,
+  getMegaBillConsolidated,
+  getUnitEconomics,
 };
