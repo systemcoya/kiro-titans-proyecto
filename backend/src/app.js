@@ -54,15 +54,10 @@ app.use('/api/v1/costs', unitEconomicsRoutes);
 app.use('/api/v1/costs', showbackRoutes);
 app.use('/api/v1/costs', megabillRoutes);
 
-// TODO: Register these routes when their modules are implemented:
-// app.use('/api/v1/alerts', alertRoutes);
-// app.use('/api/v1/simulator', simulatorRoutes);
-// app.use('/api/v1/governance', governanceRoutes);
-// app.use('/api/v1/tagging', taggingRoutes);
-// app.use('/api/v1/anomalies', anomalyRoutes);
-// app.use('/api/v1/executive', executiveRoutes);
-// app.use('/api/v1/self-funding', selfFundingRoutes);
-// app.use('/api/v1/cost-avoidance', costAvoidanceRoutes);
+// Additional domain routes
+app.use('/api/v1/cost-avoidance', require('./routes/cost-avoidance.routes'));
+app.use('/api/v1/tagging', require('./routes/tagging.routes'));
+app.use('/api/v1/anomalies', require('./routes/anomaly.routes'));
 
 // Error handler — must be last middleware
 app.use(errorHandler);

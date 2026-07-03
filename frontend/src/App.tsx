@@ -1,8 +1,23 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
+
+// Lazy-loaded feature pages
+const ExecutivePage = lazy(() => import('@/features/executive/ExecutivePage'));
+const AISpendPage = lazy(() => import('@/features/ai-spend/AISpendPage'));
+const UnitEconomicsPage = lazy(() => import('@/features/unit-economics/UnitEconomicsPage'));
+const ShowbackPage = lazy(() => import('@/features/showback/ShowbackPage'));
+const AlertsPage = lazy(() => import('@/features/alerts/AlertsPage'));
+const MegaBillPage = lazy(() => import('@/features/megabill/MegaBillPage'));
+const SimulatorPage = lazy(() => import('@/features/simulator/SimulatorPage'));
+const GovernancePage = lazy(() => import('@/features/governance/GovernancePage'));
+const SelfFundingPage = lazy(() => import('@/features/self-funding/SelfFundingPage'));
+const CostAvoidancePage = lazy(() => import('@/features/cost-avoidance/CostAvoidancePage'));
+const TaggingPage = lazy(() => import('@/features/tagging/TaggingPage'));
+const AnomaliesPage = lazy(() => import('@/features/anomalies/AnomaliesPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -13,8 +28,18 @@ const queryClient = new QueryClient({
   },
 });
 
+/** Loading fallback for lazy-loaded pages. */
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-full">
+      <div className="animate-pulse text-muted-foreground">Cargando módulo...</div>
+    </div>
+  );
+}
+
 /**
- * Componente raíz de la aplicación con shell de layout y enrutamiento.
+ * Root application component with layout shell and routing.
+ * All feature pages are lazy-loaded for code splitting.
  */
 function App() {
   return (
@@ -25,39 +50,29 @@ function App() {
           <div className="flex flex-col flex-1 overflow-hidden">
             <Header />
             <main className="flex-1 overflow-y-auto p-6">
-              <Routes>
-                <Route path="/" element={<Navigate to="/executive" replace />} />
-                <Route path="/executive" element={<Placeholder title="Dashboard Ejecutivo" />} />
-                <Route path="/ai-spend" element={<Placeholder title="Gasto IA" />} />
-                <Route path="/unit-economics" element={<Placeholder title="Unit Economics" />} />
-                <Route path="/showback" element={<Placeholder title="Showback" />} />
-                <Route path="/alerts" element={<Placeholder title="Alertas" />} />
-                <Route path="/megabill" element={<Placeholder title="MegaBill" />} />
-                <Route path="/simulator" element={<Placeholder title="Simulador What-If" />} />
-                <Route path="/governance" element={<Placeholder title="Gobernanza" />} />
-                <Route path="/self-funding" element={<Placeholder title="Self-Funding" />} />
-                <Route path="/cost-avoidance" element={<Placeholder title="Costos Evitados" />} />
-                <Route path="/tagging" element={<Placeholder title="Etiquetado" />} />
-                <Route path="/anomalies" element={<Placeholder title="Anomalías" />} />
-              </Routes>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/executive" replace />} />
+                  <Route path="/executive" element={<ExecutivePage />} />
+                  <Route path="/ai-spend" element={<AISpendPage />} />
+                  <Route path="/unit-economics" element={<UnitEconomicsPage />} />
+                  <Route path="/showback" element={<ShowbackPage />} />
+                  <Route path="/alerts" element={<AlertsPage />} />
+                  <Route path="/megabill" element={<MegaBillPage />} />
+                  <Route path="/simulator" element={<SimulatorPage />} />
+                  <Route path="/governance" element={<GovernancePage />} />
+                  <Route path="/self-funding" element={<SelfFundingPage />} />
+                  <Route path="/cost-avoidance" element={<CostAvoidancePage />} />
+                  <Route path="/tagging" element={<TaggingPage />} />
+                  <Route path="/anomalies" element={<AnomaliesPage />} />
+                </Routes>
+              </Suspense>
             </main>
           </div>
         </div>
         <Toaster position="top-right" richColors />
       </BrowserRouter>
     </QueryClientProvider>
-  );
-}
-
-/** Componente placeholder para rutas aún no implementadas */
-function Placeholder({ title }: { title: string }) {
-  return (
-    <div className="flex items-center justify-center h-full">
-      <div className="text-center">
-        <h2 className="text-2xl font-semibold text-foreground mb-2">{title}</h2>
-        <p className="text-muted-foreground">Módulo en construcción</p>
-      </div>
-    </div>
   );
 }
 
