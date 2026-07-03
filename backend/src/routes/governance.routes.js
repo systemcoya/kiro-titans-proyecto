@@ -1,39 +1,22 @@
+const express = require('express');
+const governanceController = require('../controllers/governance.controller');
+
+const router = express.Router();
+
 /**
- * Governance routes: CRUD rules, recommendations.
- * Prefix: /api/v1/governance
+ * Governance Routes — HUF07 Governance Policies Engine.
+ * RBAC: GET = viewer+, POST/PUT/PATCH = manager+, DELETE = admin only.
  */
-const { Router } = require('express');
 
-const router = Router();
+// Policies
+router.get('/policies', governanceController.listPolicies);
+router.post('/policies', governanceController.createPolicy);
+router.put('/policies/:id', governanceController.updatePolicy);
+router.delete('/policies/:id', governanceController.deletePolicy);
 
-/** GET /rules — List governance rules */
-router.get('/rules', (req, res) => {
-  res.json([]);
-});
-
-/** POST /rules — Create governance rule */
-router.post('/rules', (req, res) => {
-  res.status(201).json({ id: null, message: 'Governance rule created (stub)' });
-});
-
-/** PUT /rules/:id — Update governance rule */
-router.put('/rules/:id', (req, res) => {
-  res.json({ id: req.params.id, message: 'Governance rule updated (stub)' });
-});
-
-/** DELETE /rules/:id — Delete governance rule */
-router.delete('/rules/:id', (req, res) => {
-  res.status(204).send();
-});
-
-/** GET /recommendations — Active recommendations sorted by savings desc */
-router.get('/recommendations', (req, res) => {
-  res.json({ recommendations: [], totalEstimatedSavings: 0 });
-});
-
-/** PATCH /recommendations/:id/implement — Mark recommendation as implemented */
-router.patch('/recommendations/:id/implement', (req, res) => {
-  res.json({ id: req.params.id, status: 'implemented', implementedAt: new Date().toISOString() });
-});
+// Recommendations
+router.get('/recommendations', governanceController.listRecommendations);
+router.patch('/recommendations/:id/accept', governanceController.acceptRecommendation);
+router.patch('/recommendations/:id/dismiss', governanceController.dismissRecommendation);
 
 module.exports = router;

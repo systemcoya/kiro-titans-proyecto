@@ -1,34 +1,91 @@
-/**
- * Tagging routes: CRUD resource tags, compliance.
- * Prefix: /api/v1/tagging
- */
+'use strict';
+
 const { Router } = require('express');
+const { APIError } = require('../middleware/error-handler');
+const taggingService = require('../services/tagging.service');
+const { validateResourceTag } = require('../validators/tagging.validator');
 
 const router = Router();
 
-/** GET /resources — List tagged resources */
-router.get('/resources', (req, res) => {
-  res.json([]);
+/**
+ * GET /api/v1/tagging/resources
+ * Returns all resource tags.
+ */
+router.get('/resources', async (req, res, next) => {
+  try {
+    const tags = await taggingService.getAllTags();
+    return res.json(tags);
+  } catch (error) {
+    return next(error);
+  }
 });
 
-/** POST /resources — Create resource tag */
-router.post('/resources', (req, res) => {
-  res.status(201).json({ id: null, message: 'Resource tag created (stub)' });
+/**
+ * POST /api/v1/tagging/resources
+ * Creates a new resource tag.
+ */
+router.post('/resources', async (req, res, next) => {
+  try {
+    const data = validateResourceTag(req.body);
+    const tag = await taggingService.createTag(data);
+    return res.status(201).json(tag);
+  } catch (error) {
+    if (error.name === 'ZodError') {
+      const details = error.errors.map((e) => ({ field: e.path.join('.'), reason: e.message }));
+      return next(new APIError(400, 'Bad Request', 'Datos de etiqueta inválidos', details));
+    }
+    return next(error);
+  }
 });
 
-/** PUT /resources/:id — Update resource tag */
-router.put('/resources/:id', (req, res) => {
-  res.json({ id: req.params.id, message: 'Resource tag updated (stub)' });
+/**
+ * PUT /api/v1/tagging/resources/:id
+ * Updates an existing resource tag.
+ */
+router.put('/resources/:id', async (req, res, next) => {
+  try {
+    const data = validateResourceTag(req.body);
+    const tag = await taggingService.updateTag(req.params.id, data);
+    if (!tag) {
+      throw new APIError(404, 'Not Found', 'Etiqueta no encontrada');
+    }
+    return res.json(tag);
+  } catch (error) {
+    if (error.name === 'ZodError') {
+      const details = error.errors.map((e) => ({ field: e.path.join('.'), reason: e.message }));
+      return next(new APIError(400, 'Bad Request', 'Datos de etiqueta inválidos', details));
+    }
+    return next(error);
+  }
 });
 
-/** DELETE /resources/:id — Delete resource tag */
-router.delete('/resources/:id', (req, res) => {
-  res.status(204).send();
+/**
+ * DELETE /api/v1/tagging/resources/:id
+ * Deletes a resource tag.
+ */
+router.delete('/resources/:id', async (req, res, next) => {
+  try {
+    const deleted = await taggingService.deleteTag(req.params.id);
+    if (!deleted) {
+      throw new APIError(404, 'Not Found', 'Etiqueta no encontrada');
+    }
+    return res.status(204).send();
+  } catch (error) {
+    return next(error);
+  }
 });
 
-/** GET /compliance — Tagging compliance percentage */
-router.get('/compliance', (req, res) => {
-  res.json({ compliancePercent: 0, totalResources: 0, compliantResources: 0 });
+/**
+ * GET /api/v1/tagging/compliance
+ * Returns tagging compliance percentage.
+ */
+router.get('/compliance', async (req, res, next) => {
+  try {
+    const compliance = await taggingService.getCompliance();
+    return res.json(compliance);
+  } catch (error) {
+    return next(error);
+  }
 });
 
 module.exports = router;

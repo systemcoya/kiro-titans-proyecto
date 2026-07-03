@@ -1,27 +1,26 @@
 /**
- * Middleware: Centralized error handler.
- * Returns standard APIError format with correlationId.
- * Generic messages to client, details only in logs.
- */
-
-/**
- * Custom API Error class.
- * @param {number} statusCode - HTTP status code
- * @param {string} error - Error type label
- * @param {string} message - Human-readable message
- * @param {Array} [details] - Field-level error details
+ * Custom API error class with structured fields.
+ * Provides standard error format for all API responses.
  */
 class APIError extends Error {
-  constructor(statusCode, error, message, details = null) {
+  /**
+   * @param {number} statusCode - HTTP status code
+   * @param {string} error - Error type label (e.g., 'Bad Request', 'Not Found')
+   * @param {string} message - User-facing generic message
+   * @param {Array<{field: string, reason: string}>} [details] - Field-level validation errors
+   */
+  constructor(statusCode, error, message, details) {
     super(message);
     this.statusCode = statusCode;
     this.error = error;
     this.details = details;
+    this.name = 'APIError';
   }
 }
 
 /**
  * Express error-handling middleware.
+ * Logs detailed error internally, returns generic APIError format to client.
  * @param {Error} err
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -30,13 +29,15 @@ class APIError extends Error {
 const errorHandler = (err, req, res, _next) => {
   const correlationId = req.correlationId || 'unknown';
 
-  // Log full error internally
-  console.error('[ERROR]', {
+  // Log detailed error internally (structured logging)
+  console.error('[error-handler]', {
     correlationId,
+    method: req.method,
+    path: req.path,
     statusCode: err.statusCode || 500,
+    errorName: err.name,
     message: err.message,
     stack: err.stack,
-    timestamp: new Date().toISOString(),
   });
 
   if (err instanceof APIError) {
@@ -46,17 +47,19 @@ const errorHandler = (err, req, res, _next) => {
       message: err.message,
       correlationId,
     };
-    if (err.details) {
+
+    if (err.details && err.details.length > 0) {
       response.details = err.details;
     }
+
     return res.status(err.statusCode).json(response);
   }
 
-  // Generic response for unhandled errors — never expose internals
+  // Generic error — never expose internals to the client
   return res.status(500).json({
     statusCode: 500,
     error: 'Internal Server Error',
-    message: 'An unexpected error occurred',
+    message: 'Ha ocurrido un error interno. Intente nuevamente.',
     correlationId,
   });
 };

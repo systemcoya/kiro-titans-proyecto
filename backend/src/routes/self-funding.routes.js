@@ -1,19 +1,17 @@
+const express = require('express');
+const selfFundingController = require('../controllers/self-funding.controller');
+
+const router = express.Router();
+
 /**
- * Self-Funding routes: Investment vs. savings ratio.
- * Prefix: /api/v1/self-funding
+ * Self-Funding Routes — HUF08 AI Investment vs Savings.
+ * All roles can access (viewer, manager, admin).
  */
-const { Router } = require('express');
 
-const router = Router();
+// GET /api/v1/self-funding — Dashboard overview
+router.get('/', selfFundingController.getDashboard);
 
-/** GET / — Self-funding ratio for a period */
-router.get('/', (req, res) => {
-  res.json({
-    investmentUsd: 0,
-    savingsUsd: 0,
-    selfFundingRatio: 0,
-    period: req.query.period || 'month',
-  });
-});
+// GET /api/v1/self-funding/timeline — Monthly evolution (12 months)
+router.get('/timeline', selfFundingController.getTimeline);
 
 module.exports = router;

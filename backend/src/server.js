@@ -1,47 +1,49 @@
-/**
- * Server entry point with graceful shutdown.
- * Loads environment variables, starts HTTP server,
- * and handles SIGTERM/SIGINT for clean shutdown.
- */
+'use strict';
+
 require('dotenv').config();
 
 const app = require('./app');
 const { pool } = require('./config/db');
 
-const PORT = parseInt(process.env.PORT || '3000', 10);
+const PORT = parseInt(process.env.PORT || '3001', 10);
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
+/**
+ * Starts the HTTP server and binds to the configured port.
+ * @returns {import('http').Server}
+ */
 const server = app.listen(PORT, () => {
-  console.log(`[SERVER] Listening on port ${PORT}`, {
-    environment: process.env.NODE_ENV || 'development',
+  console.info('[server] started', {
+    port: PORT,
+    environment: NODE_ENV,
     timestamp: new Date().toISOString(),
   });
 });
 
 /**
- * Graceful shutdown handler.
- * Stops accepting new connections, closes DB pool, then exits.
- * @param {string} signal - The signal that triggered shutdown
+ * Gracefully shuts down the server by closing new connections,
+ * draining the database pool, and exiting the process.
+ * @param {string} signal - The OS signal that triggered shutdown
  */
-const shutdown = (signal) => {
-  console.log(`[SERVER] ${signal} received. Starting graceful shutdown...`);
+const gracefulShutdown = async (signal) => {
+  console.info('[server] shutdown initiated', { signal, timestamp: new Date().toISOString() });
 
-  server.close(async () => {
-    console.log('[SERVER] HTTP server closed. Draining DB pool...');
-    try {
-      await pool.end();
-      console.log('[SERVER] DB pool closed. Exiting.');
-    } catch (err) {
-      console.error('[SERVER] Error closing DB pool:', err.message);
-    }
-    process.exit(0);
+  server.close(() => {
+    console.info('[server] http server closed — no longer accepting connections');
   });
 
-  // Force exit after 10s if graceful shutdown hangs
-  setTimeout(() => {
-    console.error('[SERVER] Forced exit after timeout');
-    process.exit(1);
-  }, 10000);
+  try {
+    await pool.end();
+    console.info('[server] database pool closed');
+  } catch (err) {
+    console.error('[server] error closing database pool', { error: err.message });
+  }
+
+  console.info('[server] shutdown complete');
+  process.exit(0);
 };
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+module.exports = server;

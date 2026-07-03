@@ -1,21 +1,14 @@
+const express = require('express');
+const simulatorController = require('../controllers/simulator.controller');
+
+const router = express.Router();
+
 /**
- * Simulator routes: What-If projection.
- * Prefix: /api/v1/simulator
+ * Simulator Routes — HUF06 What-If Cost Projection.
+ * All roles can access (viewer, manager, admin).
  */
-const { Router } = require('express');
 
-const router = Router();
-
-/** POST /projection — Run what-if simulation */
-router.post('/projection', (req, res) => {
-  res.json({
-    projections: [
-      { month: 1, optimistic: 0, base: 0, pessimistic: 0 },
-      { month: 3, optimistic: 0, base: 0, pessimistic: 0 },
-      { month: 6, optimistic: 0, base: 0, pessimistic: 0 },
-    ],
-    historicalBase: [],
-  });
-});
+// POST /api/v1/simulator/project — Calculate cost projection
+router.post('/project', simulatorController.project);
 
 module.exports = router;

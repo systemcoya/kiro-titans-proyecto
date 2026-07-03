@@ -1,28 +1,14 @@
+const express = require('express');
+const executiveController = require('../controllers/executive.controller');
+
+const router = express.Router();
+
 /**
- * Executive routes: Dashboard KPIs, PDF export.
- * Prefix: /api/v1/executive
+ * Executive Routes — HUF10 Executive One-Pager Dashboard.
+ * All roles can access (viewer, manager, admin).
  */
-const { Router } = require('express');
 
-const router = Router();
-
-/** GET /dashboard — Executive KPIs */
-router.get('/dashboard', (req, res) => {
-  res.json({
-    currentMonthSpend: 0,
-    previousMonthSpend: 0,
-    variationPercent: 0,
-    variationFlagged: false,
-    avgCostPerTransaction: 0,
-    criticalAlertsCount: 0,
-    topServices: [],
-    monthlyTrend: [],
-  });
-});
-
-/** GET /export-pdf — Export executive dashboard as PDF */
-router.get('/export-pdf', (req, res) => {
-  res.status(200).json({ message: 'PDF export endpoint (stub)' });
-});
+// GET /api/v1/executive/summary — Complete executive dashboard
+router.get('/summary', executiveController.getSummary);
 
 module.exports = router;

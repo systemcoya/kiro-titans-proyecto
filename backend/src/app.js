@@ -1,64 +1,74 @@
-/**
- * Express application setup.
- * Configures security headers, CORS, JSON parsing, middleware,
- * and registers all route modules under /api/v1.
- */
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
-
 const { correlationId } = require('./middleware/correlation-id');
+const { auth } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/error-handler');
 
 // Route modules
-const healthRoutes = require('./routes/health.routes');
 const costRoutes = require('./routes/cost.routes');
-const alertRoutes = require('./routes/alert.routes');
-const simulatorRoutes = require('./routes/simulator.routes');
-const governanceRoutes = require('./routes/governance.routes');
-const selfFundingRoutes = require('./routes/self-funding.routes');
-const costAvoidanceRoutes = require('./routes/cost-avoidance.routes');
-const executiveRoutes = require('./routes/executive.routes');
-const taggingRoutes = require('./routes/tagging.routes');
-const anomalyRoutes = require('./routes/anomaly.routes');
+const unitEconomicsRoutes = require('./routes/unit-economics.routes');
+const showbackRoutes = require('./routes/showback.routes');
+const megabillRoutes = require('./routes/megabill.routes');
 
 const app = express();
 
 // Security headers
 app.use(helmet());
 
-// CORS
-app.use(cors());
+// CORS configuration
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Correlation-ID'],
+  exposedHeaders: ['X-Correlation-ID'],
+}));
 
-// JSON body parser (limit body size to prevent abuse)
+// JSON body parser with size limit
 app.use(express.json({ limit: '1mb' }));
 
-// Correlation ID on every request
+// Correlation ID propagation (before auth so it's available in error responses)
 app.use(correlationId);
 
-// API routes — all under /api/v1
-app.use('/api/v1/health', healthRoutes);
-app.use('/api/v1/costs', costRoutes);
-app.use('/api/v1/alerts', alertRoutes);
-app.use('/api/v1/simulator', simulatorRoutes);
-app.use('/api/v1/governance', governanceRoutes);
-app.use('/api/v1/self-funding', selfFundingRoutes);
-app.use('/api/v1/cost-avoidance', costAvoidanceRoutes);
-app.use('/api/v1/executive', executiveRoutes);
-app.use('/api/v1/tagging', taggingRoutes);
-app.use('/api/v1/anomalies', anomalyRoutes);
-
-// 404 handler for unknown routes
-app.use((req, res) => {
-  res.status(404).json({
-    statusCode: 404,
-    error: 'Not Found',
-    message: `Route ${req.method} ${req.path} not found`,
+// Health check (no auth required)
+app.get('/api/v1/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
     correlationId: req.correlationId,
   });
 });
 
-// Centralized error handler (must be last)
+// Simulated JWT authentication for all /api routes except health
+app.use('/api/v1', (req, res, next) => {
+  // Skip auth for health endpoint
+  if (req.path === '/health') {
+    return next();
+  }
+  return auth(req, res, next);
+});
+
+// Domain routes — mounted after auth middleware
+app.use('/api/v1/costs', costRoutes);
+app.use('/api/v1/costs', unitEconomicsRoutes);
+app.use('/api/v1/costs', showbackRoutes);
+app.use('/api/v1/costs', megabillRoutes);
+
+// Additional domain routes
+app.use('/api/v1/cost-avoidance', require('./routes/cost-avoidance.routes'));
+app.use('/api/v1/tagging', require('./routes/tagging.routes'));
+app.use('/api/v1/anomalies', require('./routes/anomaly.routes'));
+
+// Jorge's advanced services
+app.use('/api/v1/alerts', require('./routes/alerts.routes'));
+app.use('/api/v1/simulator', require('./routes/simulator.routes'));
+app.use('/api/v1/governance', require('./routes/governance.routes'));
+app.use('/api/v1/self-funding', require('./routes/self-funding.routes'));
+app.use('/api/v1/executive', require('./routes/executive.routes'));
+app.use('/api/v1/sheets', require('./routes/sheets-sync.routes'));
+app.get('/api/v1/finops/summary', require('./controllers/finops-summary.controller').getSummary);
+
+// Error handler — must be last middleware
 app.use(errorHandler);
 
 module.exports = app;

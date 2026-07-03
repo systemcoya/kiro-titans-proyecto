@@ -1,53 +1,68 @@
-/**
- * Cost routes: AI Spend, Unit Economics, Showback, MegaBill.
- * Prefix: /api/v1/costs
- */
+'use strict';
+
 const { Router } = require('express');
+const { ZodError } = require('zod');
+const { validateCostFilters } = require('../validators/cost.validator');
+const costService = require('../services/cost.service');
+const { APIError } = require('../middleware/error-handler');
 
 const router = Router();
 
-/** GET /ai-spend — AI cost breakdown with filters */
-router.get('/ai-spend', (req, res) => {
-  res.json({
-    totalCost: 0,
-    breakdown: [],
-    filters: { startDate: null, endDate: null },
-  });
-});
+/**
+ * GET /api/v1/costs/ai-spend
+ * Returns AI spend breakdown with totals, percentages, and consumption metrics.
+ * Query params: startDate, endDate, team (optional), provider (optional), groupBy (optional, default 'service')
+ */
+router.get('/ai-spend', async (req, res, next) => {
+  try {
+    const input = {
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+      team: req.query.team,
+      provider: req.query.provider,
+      groupBy: req.query.groupBy,
+    };
 
-/** POST /ai-spend/advance — Simulate temporal advance (+1h) */
-router.post('/ai-spend/advance', (req, res) => {
-  res.json({ message: 'Temporal advance simulated', newRecords: 0 });
-});
-
-/** GET /unit-economics — Unit cost per service/use case */
-router.get('/unit-economics', (req, res) => {
-  res.json([]);
-});
-
-/** GET /showback — Showback per team */
-router.get('/showback', (req, res) => {
-  res.json([]);
-});
-
-/** GET /megabill — Consolidated view by category */
-router.get('/megabill', (req, res) => {
-  res.json({ cloud: 0, saas: 0, licenses: 0, total: 0, services: [] });
-});
-
-/** GET /megabill/:category — Drill-down by category */
-router.get('/megabill/:category', (req, res) => {
-  const { category } = req.params;
-  const validCategories = ['cloud', 'saas', 'licenses'];
-  if (!validCategories.includes(category)) {
-    return res.status(400).json({
-      statusCode: 400,
-      error: 'Bad Request',
-      message: `Invalid category. Must be one of: ${validCategories.join(', ')}`,
-      correlationId: req.correlationId,
+    // Remove undefined keys to let Zod defaults apply
+    Object.keys(input).forEach((key) => {
+      if (input[key] === undefined) {
+        delete input[key];
+      }
     });
+
+    const filters = validateCostFilters(input);
+    const result = await costService.getAISpend(filters);
+
+    return res.json(result);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      const details = error.errors.map((err) => ({
+        field: err.path.join('.'),
+        reason: err.message,
+      }));
+      return next(new APIError(400, 'Bad Request', 'Validation failed', details));
+    }
+    return next(error);
   }
-  res.json({ category, services: [] });
+});
+
+/**
+ * POST /api/v1/costs/ai-spend/advance
+ * Generates new mock AI cost values simulating +1 hour of consumption.
+ * Used for temporal advance demonstration.
+ */
+router.post('/ai-spend/advance', async (req, res, next) => {
+  try {
+    const result = await costService.advanceTime();
+
+    return res.status(201).json({
+      message: 'Temporal advance completed',
+      recordsCreated: result.recordsCreated,
+      simulatedTime: result.simulatedTime,
+    });
+  } catch (error) {
+    return next(error);
+  }
 });
 
 module.exports = router;
