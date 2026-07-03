@@ -1,39 +1,34 @@
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/api-client';
-import type { UnitEconomicsRow } from '@/types';
+
+interface UnitEconomicsItem {
+  mes: string;
+  producto: string;
+  totalCostAiUsd: number;
+  polizasEmitidas: number;
+  primasEmitidasUsd: number;
+  costoPorPolizaUsd: number | null;
+  costoPorPolizaCop: number | null;
+}
 
 interface UnitEconomicsResponse {
-  data: UnitEconomicsRow[];
-  period: { startDate: string; endDate: string };
-}
-
-interface UnitEconomicsParams {
-  period?: 'week' | 'month';
-  startDate?: string;
-  endDate?: string;
+  data: UnitEconomicsItem[];
+  count: number;
 }
 
 /**
- * Fetches unit economics data for the specified period.
+ * Fetches unit economics from Google Sheets (real data).
  */
-const fetchUnitEconomics = async (params: UnitEconomicsParams): Promise<UnitEconomicsResponse> => {
-  const queryParams: Record<string, string> = {};
-  if (params.period) queryParams.period = params.period;
-  if (params.startDate) queryParams.startDate = params.startDate;
-  if (params.endDate) queryParams.endDate = params.endDate;
-
-  const { data } = await apiClient.get<UnitEconomicsResponse>('/costs/unit-economics', { params: queryParams });
-  return data;
-};
-
-/**
- * React Query hook for unit economics data.
- */
-export function useUnitEconomics(params: UnitEconomicsParams) {
+export function useUnitEconomics() {
   return useQuery({
-    queryKey: ['unit-economics', params],
-    queryFn: () => fetchUnitEconomics(params),
+    queryKey: ['unit-economics-sheets'],
+    queryFn: async (): Promise<UnitEconomicsResponse> => {
+      const { data } = await apiClient.get<UnitEconomicsResponse>('/sheets/unit-economics');
+      return data;
+    },
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
 }
+
+export type { UnitEconomicsItem, UnitEconomicsResponse };
