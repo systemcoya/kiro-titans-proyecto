@@ -1,11 +1,11 @@
 const { APIError } = require('../middleware/error-handler');
 const { createAlertSchema, updateAlertSchema, alertIdParamSchema, alertHistoryQuerySchema } = require('../validators/alerts.validator');
 const alertsService = require('../services/alerts.service');
+const alertsRepository = require('../repositories/alerts.repository');
 
 /**
  * Alerts Controller — HUF04.
  * Handles HTTP requests, validates input, delegates to service.
- * Repository calls are stubbed until Task 1.3 (schema) is complete.
  */
 
 /**
@@ -13,10 +13,7 @@ const alertsService = require('../services/alerts.service');
  */
 const listAlerts = async (req, res, next) => {
   try {
-    // TODO: Replace with alertsRepository.listAlerts() when DB is ready
-    const alerts = req.app.locals.alertsRepository
-      ? await req.app.locals.alertsRepository.listAlerts()
-      : [];
+    const alerts = await alertsRepository.listAlerts();
 
     res.json({ data: alerts, total: alerts.length });
   } catch (err) {
@@ -48,15 +45,13 @@ const createAlert = async (req, res, next) => {
     const { serviceId, thresholdCop, recipientEmail } = parsed.data;
 
     // Check uniqueness
-    const existingAlerts = req.app.locals.alertsRepository
-      ? await req.app.locals.alertsRepository.listAlerts()
-      : [];
-    alertsService.validateUniqueServiceAlert(serviceId, existingAlerts);
+    const existing = await alertsRepository.findByService(serviceId);
+    if (existing) {
+      throw new APIError(409, 'Conflict', `Ya existe una regla de alerta activa para el servicio ${serviceId}`);
+    }
 
     // Create alert
-    const newAlert = req.app.locals.alertsRepository
-      ? await req.app.locals.alertsRepository.createAlert({ serviceId, thresholdCop, recipientEmail, createdBy: req.user.id })
-      : { id: 'stub-id', serviceId, thresholdCop, recipientEmail, severity: 'none', currentCostCop: 0, isActive: true, createdAt: new Date().toISOString() };
+    const newAlert = await alertsRepository.createAlert({ service: serviceId, threshold: thresholdCop, recipient: recipientEmail, userId: req.user.id });
 
     res.status(201).json(newAlert);
   } catch (err) {
@@ -88,9 +83,14 @@ const updateAlert = async (req, res, next) => {
       throw new APIError(400, 'Bad Request', 'Error de validación', details);
     }
 
-    const updatedAlert = req.app.locals.alertsRepository
-      ? await req.app.locals.alertsRepository.updateAlert(paramsParsed.data.id, bodyParsed.data)
-      : { id: paramsParsed.data.id, ...bodyParsed.data, updatedAt: new Date().toISOString() };
+    const updatedAlert = await alertsRepository.updateAlert(paramsParsed.data.id, {
+      threshold: bodyParsed.data.thresholdCop,
+      recipient: bodyParsed.data.recipientEmail,
+    });
+
+    if (!updatedAlert) {
+      throw new APIError(404, 'Not Found', 'Alerta no encontrada');
+    }
 
     res.json(updatedAlert);
   } catch (err) {
@@ -113,8 +113,9 @@ const deleteAlert = async (req, res, next) => {
       throw new APIError(400, 'Bad Request', 'ID de alerta inválido');
     }
 
-    if (req.app.locals.alertsRepository) {
-      await req.app.locals.alertsRepository.deleteAlert(paramsParsed.data.id);
+    const deleted = await alertsRepository.deleteAlert(paramsParsed.data.id);
+    if (!deleted) {
+      throw new APIError(404, 'Not Found', 'Alerta no encontrada');
     }
 
     res.status(204).send();
@@ -133,9 +134,7 @@ const getAlertHistory = async (req, res, next) => {
       throw new APIError(400, 'Bad Request', 'Parámetros de consulta inválidos');
     }
 
-    const history = req.app.locals.alertsRepository
-      ? await req.app.locals.alertsRepository.getAlertHistory(parsed.data)
-      : [];
+    const history = await alertsRepository.getAlertHistory(parsed.data);
 
     res.json({ data: history, total: history.length });
   } catch (err) {
@@ -152,9 +151,7 @@ const evaluateAllAlerts = async (req, res, next) => {
       throw new APIError(403, 'Forbidden', 'No tiene permisos para evaluar alertas');
     }
 
-    const activeAlerts = req.app.locals.alertsRepository
-      ? await req.app.locals.alertsRepository.listAlerts()
-      : [];
+    const activeAlerts = await alertsRepository.listAlerts();
 
     const evaluationResults = alertsService.evaluateAlerts(activeAlerts);
 

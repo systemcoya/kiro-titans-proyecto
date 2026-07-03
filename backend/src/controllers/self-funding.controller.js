@@ -1,6 +1,7 @@
 const { APIError } = require('../middleware/error-handler');
 const { timelineQuerySchema } = require('../validators/self-funding.validator');
 const selfFundingService = require('../services/self-funding.service');
+const selfFundingRepository = require('../repositories/self-funding.repository');
 
 /**
  * Self-Funding Controller — HUF08.
@@ -12,23 +13,15 @@ const selfFundingService = require('../services/self-funding.service');
  */
 const getDashboard = async (req, res, next) => {
   try {
-    let data;
+    const totalAiInvestment = await selfFundingRepository.getTotalAiInvestment(12);
+    const totalSavings = await selfFundingRepository.getTotalSavings(12);
 
-    if (req.app.locals.selfFundingRepository) {
-      const totalAiInvestment = await req.app.locals.selfFundingRepository.getTotalAiInvestment();
-      const totalSavings = await req.app.locals.selfFundingRepository.getTotalSavings();
-      const previousRatio = await req.app.locals.selfFundingRepository.getPreviousMonthRatio();
+    // Calculate previous month ratio for trend
+    const prevInvestment = await selfFundingRepository.getTotalAiInvestment(13);
+    const prevSavings = await selfFundingRepository.getTotalSavings(13);
+    const previousRatio = prevInvestment > 0 ? (prevSavings / prevInvestment) * 100 : 0;
 
-      data = { totalAiInvestment, totalSavings, previousRatio };
-    } else {
-      // Stub data for prototype
-      data = {
-        totalAiInvestment: 245000000,
-        totalSavings: 179850000,
-        previousRatio: 68.5,
-      };
-    }
-
+    const data = { totalAiInvestment, totalSavings, previousRatio };
     const dashboard = selfFundingService.buildSelfFundingDashboard(data);
 
     res.json(dashboard);
@@ -48,28 +41,7 @@ const getTimeline = async (req, res, next) => {
     }
 
     const { months } = parsed.data;
-
-    let timeline;
-    if (req.app.locals.selfFundingRepository) {
-      timeline = await req.app.locals.selfFundingRepository.getMonthlyEvolution(months);
-    } else {
-      // Stub: generate realistic progression where savings grow over time
-      timeline = Array.from({ length: months }, (_, i) => {
-        const monthDate = new Date();
-        monthDate.setMonth(monthDate.getMonth() - (months - 1 - i));
-
-        const baseInvestment = 18000000 + (i * 2000000);
-        const baseSavings = 5000000 + (i * 3500000);
-
-        return {
-          month: monthDate.toISOString().slice(0, 7),
-          investmentCop: baseInvestment,
-          savingsCop: baseSavings,
-          cumulativeInvestment: baseInvestment * (i + 1),
-          cumulativeSavings: baseSavings * (i + 1),
-        };
-      });
-    }
+    const timeline = await selfFundingRepository.getMonthlyEvolution(months);
 
     res.json({ data: timeline, months });
   } catch (err) {

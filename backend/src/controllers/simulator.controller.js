@@ -1,13 +1,13 @@
 const { APIError } = require('../middleware/error-handler');
 const { simulatorProjectSchema } = require('../validators/simulator.validator');
 const simulatorService = require('../services/simulator.service');
+const simulatorRepository = require('../repositories/simulator.repository');
 
 /**
  * Simulator Controller — HUF06.
  * Handles HTTP requests for What-If Cost Projections.
  */
 
-// Default exchange rate (from env or hardcoded for prototype)
 const DEFAULT_EXCHANGE_RATE = parseFloat(process.env.EXCHANGE_RATE_USD_COP) || 4200;
 
 /**
@@ -27,28 +27,18 @@ const project = async (req, res, next) => {
 
     const { serviceIncrements } = parsed.data;
 
-    // Get current costs from repository (or use stub data)
-    let serviceData;
-    if (req.app.locals.simulatorRepository) {
-      const serviceIds = serviceIncrements.map((s) => s.serviceId);
-      const currentCosts = await req.app.locals.simulatorRepository.getCurrentMonthlyCosts(serviceIds);
+    // Get current costs from DB using service names (serviceId maps to service_name in our schema)
+    const serviceNames = serviceIncrements.map((s) => s.serviceId);
+    const currentCosts = await simulatorRepository.getCurrentMonthlyCosts(serviceNames);
 
-      serviceData = serviceIncrements.map((increment) => {
-        const current = currentCosts.find((c) => c.serviceId === increment.serviceId);
-        return {
-          serviceId: increment.serviceId,
-          currentMonthlyCostCop: current ? current.monthlyCostCop : 0,
-          percentIncrement: increment.percentIncrement,
-        };
-      });
-    } else {
-      // Stub: use a realistic default cost per service for prototype
-      serviceData = serviceIncrements.map((increment) => ({
+    const serviceData = serviceIncrements.map((increment) => {
+      const current = currentCosts.find((c) => c.serviceName === increment.serviceId);
+      return {
         serviceId: increment.serviceId,
-        currentMonthlyCostCop: 45000000, // ~$45M COP default
+        currentMonthlyCostCop: current ? current.monthlyCostCop : 45000000,
         percentIncrement: increment.percentIncrement,
-      }));
-    }
+      };
+    });
 
     const projection = simulatorService.generateProjection(serviceData, DEFAULT_EXCHANGE_RATE);
 

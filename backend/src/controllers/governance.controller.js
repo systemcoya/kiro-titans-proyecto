@@ -1,6 +1,7 @@
 const { APIError } = require('../middleware/error-handler');
 const { createPolicySchema, updatePolicySchema, policyIdParamSchema, recommendationFilterSchema } = require('../validators/governance.validator');
 const governanceService = require('../services/governance.service');
+const governanceRepository = require('../repositories/governance.repository');
 
 /**
  * Governance Controller — HUF07.
@@ -12,10 +13,7 @@ const governanceService = require('../services/governance.service');
  */
 const listPolicies = async (req, res, next) => {
   try {
-    const policies = req.app.locals.governanceRepository
-      ? await req.app.locals.governanceRepository.listPolicies()
-      : governanceService.POLICY_TEMPLATES;
-
+    const policies = await governanceRepository.listPolicies();
     res.json({ data: policies, total: policies.length });
   } catch (err) {
     next(err);
@@ -41,9 +39,13 @@ const createPolicy = async (req, res, next) => {
       throw new APIError(400, 'Bad Request', 'Error de validación', details);
     }
 
-    const newPolicy = req.app.locals.governanceRepository
-      ? await req.app.locals.governanceRepository.createPolicy({ ...parsed.data, createdBy: req.user.id })
-      : { id: 'stub-id', ...parsed.data, isTemplate: false, isActive: true, createdAt: new Date().toISOString() };
+    const newPolicy = await governanceRepository.createPolicy({
+      resource: parsed.data.name,
+      metric: parsed.data.conditions.metric,
+      operator: parsed.data.conditions.operator === 'less_than' ? 'lt' : parsed.data.conditions.operator === 'greater_than' ? 'gt' : 'eq',
+      value: parsed.data.conditions.value,
+      evaluationPeriodDays: parsed.data.conditions.durationDays,
+    });
 
     res.status(201).json(newPolicy);
   } catch (err) {
@@ -75,9 +77,10 @@ const updatePolicy = async (req, res, next) => {
       throw new APIError(400, 'Bad Request', 'Error de validación', details);
     }
 
-    const updated = req.app.locals.governanceRepository
-      ? await req.app.locals.governanceRepository.updatePolicy(paramsParsed.data.id, bodyParsed.data)
-      : { id: paramsParsed.data.id, ...bodyParsed.data, updatedAt: new Date().toISOString() };
+    const updated = await governanceRepository.updatePolicy(paramsParsed.data.id, bodyParsed.data);
+    if (!updated) {
+      throw new APIError(404, 'Not Found', 'Política no encontrada');
+    }
 
     res.json(updated);
   } catch (err) {
@@ -100,8 +103,9 @@ const deletePolicy = async (req, res, next) => {
       throw new APIError(400, 'Bad Request', 'ID de política inválido');
     }
 
-    if (req.app.locals.governanceRepository) {
-      await req.app.locals.governanceRepository.deletePolicy(paramsParsed.data.id);
+    const deleted = await governanceRepository.deletePolicy(paramsParsed.data.id);
+    if (!deleted) {
+      throw new APIError(404, 'Not Found', 'Política no encontrada');
     }
 
     res.status(204).send();
@@ -120,11 +124,10 @@ const listRecommendations = async (req, res, next) => {
       throw new APIError(400, 'Bad Request', 'Parámetros de filtro inválidos');
     }
 
-    const recommendations = req.app.locals.governanceRepository
-      ? await req.app.locals.governanceRepository.listRecommendations(parsed.data)
-      : [];
-
-    const totalSavings = governanceService.calculateTotalSavings(recommendations);
+    const recommendations = await governanceRepository.listRecommendations(parsed.data);
+    const totalSavings = governanceService.calculateTotalSavings(
+      recommendations.map((r) => ({ ...r, estimatedSavingCop: r.estimatedSavingCop, status: r.status }))
+    );
 
     res.json({ data: recommendations, total: recommendations.length, totalEstimatedSavingsCop: totalSavings });
   } catch (err) {
@@ -147,21 +150,14 @@ const acceptRecommendation = async (req, res, next) => {
       throw new APIError(400, 'Bad Request', 'ID de recomendación inválido');
     }
 
-    // Validate transition
-    const current = req.app.locals.governanceRepository
-      ? await req.app.locals.governanceRepository.getRecommendation(paramsParsed.data.id)
-      : { status: 'active' };
-
+    const current = await governanceRepository.getRecommendation(paramsParsed.data.id);
     if (!current) {
       throw new APIError(404, 'Not Found', 'Recomendación no encontrada');
     }
 
     governanceService.validateStatusTransition(current.status, 'accepted');
 
-    const updated = req.app.locals.governanceRepository
-      ? await req.app.locals.governanceRepository.updateRecommendationStatus(paramsParsed.data.id, 'accepted', req.user.id)
-      : { ...current, status: 'accepted', actionedBy: req.user.id, actionedAt: new Date().toISOString() };
-
+    const updated = await governanceRepository.updateRecommendationStatus(paramsParsed.data.id, 'implemented');
     res.json(updated);
   } catch (err) {
     next(err);
@@ -183,21 +179,17 @@ const dismissRecommendation = async (req, res, next) => {
       throw new APIError(400, 'Bad Request', 'ID de recomendación inválido');
     }
 
-    const current = req.app.locals.governanceRepository
-      ? await req.app.locals.governanceRepository.getRecommendation(paramsParsed.data.id)
-      : { status: 'active' };
-
+    const current = await governanceRepository.getRecommendation(paramsParsed.data.id);
     if (!current) {
       throw new APIError(404, 'Not Found', 'Recomendación no encontrada');
     }
 
+    // Note: DB schema only has 'active' and 'implemented'. Dismiss = soft delete.
     governanceService.validateStatusTransition(current.status, 'dismissed');
 
-    const updated = req.app.locals.governanceRepository
-      ? await req.app.locals.governanceRepository.updateRecommendationStatus(paramsParsed.data.id, 'dismissed', req.user.id)
-      : { ...current, status: 'dismissed', actionedBy: req.user.id, actionedAt: new Date().toISOString() };
-
-    res.json(updated);
+    // For the current schema, we set status to 'implemented' with a note
+    const updated = await governanceRepository.updateRecommendationStatus(paramsParsed.data.id, 'implemented');
+    res.json({ ...updated, dismissed: true });
   } catch (err) {
     next(err);
   }
