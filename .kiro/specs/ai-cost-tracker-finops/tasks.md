@@ -7,7 +7,7 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
 ## Tasks
 
 - [ ] 1. Set up project structure and shared infrastructure
-  - [ ] 1.1 Create backend project with Express, pg, Zod, and folder structure
+  - [x] 1.1 Create backend project with Express, pg, Zod, and folder structure
     - Initialize `backend/` with `package.json`, install express, pg, zod, cors, helmet, uuid, dotenv
     - Create folder structure: `src/routes/`, `src/services/`, `src/repositories/`, `src/validators/`, `src/middleware/`, `src/mock/`, `src/config/`, `src/utils/`
     - Create `src/config/db.js` with pg pool configuration (env vars)
@@ -17,7 +17,7 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
     - Create `src/app.js` with Express setup (helmet, cors, JSON parser, middleware)
     - _Requirements: All (infrastructure base)_
 
-  - [ ] 1.2 Create frontend project with Vite, React, Tailwind, Shadcn UI, Recharts
+  - [~] 1.2 Create frontend project with Vite, React, Tailwind, Shadcn UI, Recharts
     - Initialize `frontend/` with Vite + React + TypeScript template
     - Install and configure Tailwind CSS 3.x, Shadcn UI, Recharts 2.x, Axios 1.x, React Router 6.x, React Query 5.x, React Hook Form + Zod, Sonner, Lucide React
     - Create folder structure: `src/components/ui/`, `src/components/layout/`, `src/components/charts/`, `src/features/`, `src/services/`, `src/hooks/`, `src/types/`, `src/config/`, `src/lib/`
