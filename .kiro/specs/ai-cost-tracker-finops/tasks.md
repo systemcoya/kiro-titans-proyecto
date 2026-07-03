@@ -17,7 +17,7 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
     - Create `src/app.js` with Express setup (helmet, cors, JSON parser, middleware)
     - _Requirements: All (infrastructure base)_
 
-  - [~] 1.2 Create frontend project with Vite, React, Tailwind, Shadcn UI, Recharts
+  - [x] 1.2 Create frontend project with Vite, React, Tailwind, Shadcn UI, Recharts
     - Initialize `frontend/` with Vite + React + TypeScript template
     - Install and configure Tailwind CSS 3.x, Shadcn UI, Recharts 2.x, Axios 1.x, React Router 6.x, React Query 5.x, React Hook Form + Zod, Sonner, Lucide React
     - Create folder structure: `src/components/ui/`, `src/components/layout/`, `src/components/charts/`, `src/features/`, `src/services/`, `src/hooks/`, `src/types/`, `src/config/`, `src/lib/`
@@ -41,7 +41,7 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
     - Implement temporal advance endpoint that generates new mock values for +1 hour
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7_
 
-  - [ ]* 2.2 Write property test for percentage distribution (Property 1)
+  - [ ] 2.2 Write property test for percentage distribution (Property 1)
     - **Property 1: Percentage distributions sum to 100%**
     - Use fast-check to generate arbitrary cost item arrays and verify sum of percentages equals 100% (±0.1%)
     - **Validates: Requirements 1.1, 5.5**
@@ -55,7 +55,7 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
     - Default view: current month, all providers and teams visible
     - _Requirements: 1.1, 1.6, 1.8, 1.9, 1.10_
 
-  - [ ]* 2.4 Write property test for filtering correctness (Property 2)
+  - [ ] 2.4 Write property test for filtering correctness (Property 2)
     - **Property 2: Filtering returns only matching records**
     - Use fast-check to generate datasets with arbitrary filters and verify all returned records match filter conditions and no matching record is excluded
     - **Validates: Requirements 1.2, 1.3, 1.4, 5.2, 9.5**
@@ -69,12 +69,12 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
     - Handle zero transactions case returning null unit cost
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-  - [ ]* 3.2 Write property test for unit cost calculation (Property 6)
+  - [ ] 3.2 Write property test for unit cost calculation (Property 6)
     - **Property 6: Unit cost calculation correctness**
     - Use fast-check to generate (totalCost, transactionsProcessed) pairs and verify unitCost = totalCost / transactionsProcessed rounded to 4 decimals, or null when transactions = 0
     - **Validates: Requirements 2.1, 2.5**
 
-  - [ ]* 3.3 Write property test for trend direction (Property 12)
+  - [ ] 3.3 Write property test for trend direction (Property 12)
     - **Property 12: Trend direction correctly reflects cost change**
     - Use fast-check to generate consecutive weekly costs and verify direction is "up" when current > previous, "down" when current < previous, "stable" when equal
     - **Validates: Requirements 2.4**
@@ -93,17 +93,17 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
     - Add route GET `/api/v1/costs/showback`
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-  - [ ]* 4.2 Write property test for budget percentage (Property 7)
+  - [ ] 4.2 Write property test for budget percentage (Property 7)
     - **Property 7: Budget percentage calculation correctness**
     - Use fast-check to generate (totalCost, budget) pairs and verify percentage = (totalCost/budget)×100 rounded to 1 decimal; null budget yields exclusion from ranking
     - **Validates: Requirements 3.2, 3.5**
 
-  - [ ]* 4.3 Write property test for aggregation totals (Property 5)
+  - [ ] 4.3 Write property test for aggregation totals (Property 5)
     - **Property 5: Aggregated totals equal sum of components**
     - Use fast-check to generate (cloudCost, aiCost, saasCost) tuples and verify totalCost === cloud + AI + SaaS exactly
     - **Validates: Requirements 3.1, 7.5, 9.2**
 
-  - [ ]* 4.4 Write property test for budget exceeded flag (Property 13)
+  - [ ] 4.4 Write property test for budget exceeded flag (Property 13)
     - **Property 13: Budget exceeded flag set correctly**
     - Use fast-check to generate teams with varying budget percentages and verify overBudget flag is true when >100% and false otherwise
     - **Validates: Requirements 3.4**
@@ -167,7 +167,7 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
     - Add route POST `/api/v1/simulator/projection`
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
 
-  - [ ]* 8.2 Write property test for projection ordering (Property 9)
+  - [ ] 8.2 Write property test for projection ordering (Property 9)
     - **Property 9: Projection scenarios maintain ordering invariant**
     - Use fast-check to generate historical cost arrays and increment percentages, verify optimistic ≤ base ≤ pessimistic for all time horizons
     - **Validates: Requirements 6.1, 6.2**
