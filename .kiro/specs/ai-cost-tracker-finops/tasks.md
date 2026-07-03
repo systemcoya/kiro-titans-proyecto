@@ -26,7 +26,7 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
     - Create `src/components/layout/Sidebar.tsx` and `src/components/layout/Header.tsx` for app shell
     - _Requirements: All (infrastructure base)_
 
-  - [ ] 1.3 Create database schema and seed mock data
+  - [x] 1.3 Create database schema and seed mock data
     - Create `backend/src/mock/schema.sql` with all tables from design (teams, ai_costs, megabill_costs, alert_rules, alert_history, governance_rules, recommendations, resource_tags, cost_avoidance, daily_cost_stats, unit_economics)
     - Create `backend/src/mock/seed.js` to generate realistic mock data: 3 AI providers (6 services), 5 teams, 3 cloud providers, 2 SaaS, 2 licenses, 3 business use cases, 6 months of daily cost history
     - Include indexes from design for performance
