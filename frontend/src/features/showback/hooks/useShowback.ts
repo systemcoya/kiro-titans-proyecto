@@ -1,25 +1,35 @@
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/api-client';
-import type { ShowbackRow } from '@/types';
+
+interface InfraCostItem {
+  mes: string;
+  proveedor: string;
+  servicio: string;
+  costoInfraUsd: number;
+  aplicacion: string;
+  producto: string;
+  centroCostos: string;
+}
 
 interface ShowbackResponse {
-  teams: (ShowbackRow & { overBudget: boolean })[];
-  ranking: (ShowbackRow & { overBudget: boolean })[];
+  data: InfraCostItem[];
+  count: number;
 }
 
 /**
- * Fetches showback data for a given month.
+ * Fetches infrastructure costs from Google Sheets for showback view.
+ * Groups by Centro de Costos (proxy for team/cell).
  */
-export function useShowback(month: string) {
+export function useShowback() {
   return useQuery({
-    queryKey: ['showback', month],
+    queryKey: ['showback-sheets'],
     queryFn: async (): Promise<ShowbackResponse> => {
-      const { data } = await apiClient.get<ShowbackResponse>('/costs/showback', {
-        params: { month },
-      });
+      const { data } = await apiClient.get<ShowbackResponse>('/sheets/infra-costs');
       return data;
     },
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
 }
+
+export type { InfraCostItem, ShowbackResponse };

@@ -1,25 +1,27 @@
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/api-client';
 
-interface ExecutiveDashboard {
-  currentMonthSpend: number;
-  previousMonthSpend: number | null;
-  variationPercentage: number | null;
-  top5Services: { name: string; cost: number }[];
-  avgCostPerTransaction: number;
-  criticalAlertsCount: number;
-  monthlyTrend: { month: string; amount: number }[];
+interface SyncData {
+  aiCosts: Array<{ mes: string; proveedor: string; costoAiUsd: number; tokensConsumidos: number; llamadasApi: number; servicioAI: string; producto: string }>;
+  infraCosts: Array<{ mes: string; proveedor: string; costoInfraUsd: number; servicio: string; producto: string }>;
+  otherCosts: Array<{ mes: string; proveedor: string; costoTotalUsd: number; conceptoGasto: string; producto: string }>;
+  policies: Array<{ mes: string; producto: string; polizasEmitidas: number; primasEmitidasUsd: number }>;
+  syncedAt: string;
 }
 
+/**
+ * Fetches all data from Google Sheets for the executive dashboard.
+ */
 export function useExecutiveDashboard() {
   return useQuery({
-    queryKey: ['executive', 'dashboard'],
-    queryFn: async (): Promise<ExecutiveDashboard> => {
-      const { data } = await apiClient.get<ExecutiveDashboard>('/executive/dashboard');
+    queryKey: ['executive-sheets'],
+    queryFn: async (): Promise<SyncData> => {
+      const { data } = await apiClient.get<SyncData>('/sheets/sync');
       return data;
     },
-    staleTime: 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
   });
 }
 
-export type { ExecutiveDashboard };
+export type { SyncData };

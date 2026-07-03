@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { AlertCircle, Download, TrendingUp, TrendingDown, DollarSign, Activity, MessageCircle, Send } from 'lucide-react';
 import { useExecutiveDashboard } from './hooks/useExecutive';
+import { processQuestion } from './copilot-engine';
 
 function formatUsd(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
@@ -36,17 +37,13 @@ export default function ExecutivePage() {
   const handleSendChat = () => {
     if (!chatInput.trim()) return;
     setChatMessages((prev) => [...prev, { role: 'user' as const, text: chatInput }]);
+    const userQuestion = chatInput;
     setChatInput('');
-    // Simulate response
+    // Process with analytics engine
     setTimeout(() => {
-      const responses = [
-        '📈 El gasto acumulado en Cloud (AWS + GCP) de enero a junio 2026 fue de **$20,370 USD**. AWS representa el 72% del gasto cloud total.',
-        '🎯 Tu Unit Economics mejoró: pasaste de $5.73/póliza en enero a $4.50/póliza en junio gracias al incremento de volumen (+87% pólizas emitidas).',
-        '⚠️ Detecto una anomalía: Stripe cobró $2,790 en junio (vs $1,530 promedio). Correlaciona con el pico de 2,800 transacciones exitosas ese mes.',
-      ];
-      setChatMessages((prev) => [...prev, { role: 'assistant' as const, text: responses[chatIndex % responses.length] }]);
-      setChatIndex((i) => i + 1);
-    }, 1000);
+      const response = processQuestion(userQuestion);
+      setChatMessages((prev) => [...prev, { role: 'assistant' as const, text: response.text }]);
+    }, 600);
   };
 
   if (isLoading) {
@@ -121,20 +118,21 @@ export default function ExecutivePage() {
           <h3 className="text-lg font-semibold mb-4">Tendencia de Gasto — 2026</h3>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={[
-              { month: 'Ene', cloud: 2870, ai: 2070, saas: 3580 },
-              { month: 'Feb', cloud: 3010, ai: 2070, saas: 3600 },
-              { month: 'Mar', cloud: 3270, ai: 2070, saas: 3700 },
-              { month: 'Abr', cloud: 3380, ai: 2070, saas: 3800 },
-              { month: 'May', cloud: 3500, ai: 2070, saas: 4200 },
-              { month: 'Jun', cloud: 3670, ai: 2835, saas: 6090 },
+              { month: 'Ene', cloud: 2870, ai: 2070, saas: 3580, primas: 45000 },
+              { month: 'Feb', cloud: 3010, ai: 2070, saas: 3600, primas: 52500 },
+              { month: 'Mar', cloud: 3270, ai: 2070, saas: 3700, primas: 63000 },
+              { month: 'Abr', cloud: 3380, ai: 2070, saas: 3800, primas: 69000 },
+              { month: 'May', cloud: 3500, ai: 2070, saas: 4200, primas: 75000 },
+              { month: 'Jun', cloud: 3670, ai: 2835, saas: 6090, primas: 84000 },
             ]}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
               <Tooltip formatter={(v: number) => formatUsd(v)} />
-              <Bar dataKey="cloud" name="Cloud (AWS+GCP)" fill="#3b82f6" stackId="a" />
-              <Bar dataKey="ai" name="AI (Bedrock+Vertex)" fill="#8b5cf6" stackId="a" />
-              <Bar dataKey="saas" name="SaaS (Stripe+Twilio+Otros)" fill="#f97316" stackId="a" />
+              <Bar dataKey="primas" name="Primas Emitidas (Ingreso)" fill="#d1fae5" stroke="#10b981" strokeWidth={1} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="cloud" name="Cloud (AWS+GCP)" fill="#3b82f6" stackId="costos" />
+              <Bar dataKey="ai" name="AI (Bedrock+Vertex)" fill="#8b5cf6" stackId="costos" />
+              <Bar dataKey="saas" name="SaaS (Stripe+Twilio+Otros)" fill="#f97316" stackId="costos" />
             </BarChart>
           </ResponsiveContainer>
         </div>

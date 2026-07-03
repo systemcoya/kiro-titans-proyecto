@@ -1,57 +1,34 @@
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/api-client';
 
-interface MegaBillCategory {
-  category: string;
-  totalCost: number;
-  percentage: number;
+interface MegaBillItem {
+  mes: string;
+  serviceName: string;
+  provider: string;
+  category: 'ai' | 'cloud' | 'saas';
+  billedCostUsd: number;
+  producto: string;
+  centroCostos: string;
 }
 
 interface MegaBillResponse {
-  totalCost: number;
-  categories: MegaBillCategory[];
-}
-
-interface DrillDownService {
-  serviceName: string;
-  billedCost: number;
-  usageQuantity: number;
-  provider: string;
-}
-
-interface DrillDownResponse {
-  category: string;
-  totalCost: number;
-  services: DrillDownService[];
+  data: MegaBillItem[];
+  count: number;
 }
 
 /**
- * React Query hook for MegaBill summary data.
+ * Fetches consolidated MegaBill from Google Sheets (AI + Infra + Other).
  */
 export function useMegaBill() {
   return useQuery({
-    queryKey: ['megabill'],
+    queryKey: ['megabill-sheets'],
     queryFn: async (): Promise<MegaBillResponse> => {
-      const { data } = await apiClient.get<MegaBillResponse>('/costs/megabill');
+      const { data } = await apiClient.get<MegaBillResponse>('/sheets/megabill');
       return data;
     },
     staleTime: 5 * 60 * 1000,
+    retry: 1,
   });
 }
 
-/**
- * React Query hook for MegaBill drill-down by category.
- */
-export function useMegaBillDrillDown(category: string | null) {
-  return useQuery({
-    queryKey: ['megabill-drilldown', category],
-    queryFn: async (): Promise<DrillDownResponse> => {
-      const { data } = await apiClient.get<DrillDownResponse>(`/costs/megabill/${category}`);
-      return data;
-    },
-    enabled: !!category,
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export type { MegaBillCategory, MegaBillResponse, DrillDownService, DrillDownResponse };
+export type { MegaBillItem, MegaBillResponse };
