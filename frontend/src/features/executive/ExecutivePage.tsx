@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { AlertCircle, Download, TrendingUp, TrendingDown, DollarSign, Activity, MessageCircle, Send } from 'lucide-react';
 import { useExecutiveDashboard } from './hooks/useExecutive';
+import { processQuestion } from './copilot-engine';
 
 function formatUsd(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
@@ -36,17 +37,13 @@ export default function ExecutivePage() {
   const handleSendChat = () => {
     if (!chatInput.trim()) return;
     setChatMessages((prev) => [...prev, { role: 'user' as const, text: chatInput }]);
+    const userQuestion = chatInput;
     setChatInput('');
-    // Simulate response
+    // Process with analytics engine
     setTimeout(() => {
-      const responses = [
-        '📈 El gasto acumulado en Cloud (AWS + GCP) de enero a junio 2026 fue de **$20,370 USD**. AWS representa el 72% del gasto cloud total.',
-        '🎯 Tu Unit Economics mejoró: pasaste de $5.73/póliza en enero a $4.50/póliza en junio gracias al incremento de volumen (+87% pólizas emitidas).',
-        '⚠️ Detecto una anomalía: Stripe cobró $2,790 en junio (vs $1,530 promedio). Correlaciona con el pico de 2,800 transacciones exitosas ese mes.',
-      ];
-      setChatMessages((prev) => [...prev, { role: 'assistant' as const, text: responses[chatIndex % responses.length] }]);
-      setChatIndex((i) => i + 1);
-    }, 1000);
+      const response = processQuestion(userQuestion);
+      setChatMessages((prev) => [...prev, { role: 'assistant' as const, text: response.text }]);
+    }, 600);
   };
 
   if (isLoading) {
