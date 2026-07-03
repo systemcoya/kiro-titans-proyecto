@@ -314,14 +314,14 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
     - Sorted by severity descending
     - _Requirements: 12.3, 12.4_
 
-- [ ] 16. Integration, routing, and final wiring
-  - [ ] 16.1 Wire all frontend routes and navigation
+- [x] 16. Integration, routing, and final wiring
+  - [x] 16.1 Wire all frontend routes and navigation
     - Configure React Router with routes for all 12 feature pages
     - Update Sidebar navigation with all module links and icons (Lucide)
     - Implement page container layout with responsive design
     - _Requirements: All_
 
-  - [ ] 16.2 Wire all backend routes and start server
+  - [x] 16.2 Wire all backend routes and start server
     - Register all route modules in `src/app.js`
     - Create `src/server.js` entry point with graceful shutdown
     - Implement health check endpoint GET `/api/v1/health`

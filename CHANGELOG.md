@@ -7,6 +7,24 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 
 ## [No publicado]
 
+### Agregado
+- Se configuró backend Express con helmet, cors, JSON parser, correlation-id y error handler centralizado
+- Se instalaron dependencias de producción con versiones exactas: express 4.21.2, cors 2.8.5, helmet 8.0.0, zod 3.24.1, uuid 11.0.5, dotenv 16.4.7, pg 8.13.1
+- Se creó estructura de carpetas backend: routes, middleware, config, utils, repositories, validators, mock
+- Se creó src/config/db.js con pool PostgreSQL configurable por variables de entorno
+- Se creó src/middleware/correlation-id.js para propagación de X-Correlation-ID
+- Se creó src/middleware/error-handler.js con formato APIError estándar (statusCode, error, message, details, correlationId)
+- Se creó src/middleware/auth.js con validación JWT simulada (mock para hackathon)
+- Se crearon 10 módulos de rutas stub bajo /api/v1: costs, alerts, simulator, governance, self-funding, cost-avoidance, executive, tagging, anomalies, health
+- Se creó src/app.js registrando todos los módulos de rutas con middleware de seguridad
+- Se creó src/server.js con graceful shutdown (SIGTERM/SIGINT), cierre de pool DB y timeout de seguridad
+- Se implementó endpoint GET /api/v1/health para health check
+- Se crearon 12 páginas de feature como placeholders con estructura PageContainer (executive, ai-spend, unit-economics, showback, alerts, megabill, simulator, governance, self-funding, cost-avoidance, tagging, anomalies)
+- Se creó componente PageContainer con diseño responsivo (max-width, padding adaptable)
+- Se creó componente PageSkeleton como fallback de carga para Suspense
+- Se implementó code splitting con React.lazy() y Suspense en todas las rutas
+- Se implementó sidebar responsivo: drawer móvil con overlay y toggle hamburguesa, colapso en desktop
+
 ### Cambiado
 - Se tradujeron todos los textos del frontend a español: título de la app, sidebar, header, comentarios JSDoc, título HTML y placeholder de rutas
 
