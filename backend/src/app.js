@@ -5,6 +5,12 @@ const { correlationId } = require('./middleware/correlation-id');
 const { auth } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/error-handler');
 
+// Route modules
+const costRoutes = require('./routes/cost.routes');
+const unitEconomicsRoutes = require('./routes/unit-economics.routes');
+const showbackRoutes = require('./routes/showback.routes');
+const megabillRoutes = require('./routes/megabill.routes');
+
 const app = express();
 
 // Security headers
@@ -42,7 +48,21 @@ app.use('/api/v1', (req, res, next) => {
   return auth(req, res, next);
 });
 
-// Domain routes will be registered here as they are implemented
+// Domain routes — mounted after auth middleware
+app.use('/api/v1/costs', costRoutes);
+app.use('/api/v1/costs', unitEconomicsRoutes);
+app.use('/api/v1/costs', showbackRoutes);
+app.use('/api/v1/costs', megabillRoutes);
+
+// TODO: Register these routes when their modules are implemented:
+// app.use('/api/v1/alerts', alertRoutes);
+// app.use('/api/v1/simulator', simulatorRoutes);
+// app.use('/api/v1/governance', governanceRoutes);
+// app.use('/api/v1/tagging', taggingRoutes);
+// app.use('/api/v1/anomalies', anomalyRoutes);
+// app.use('/api/v1/executive', executiveRoutes);
+// app.use('/api/v1/self-funding', selfFundingRoutes);
+// app.use('/api/v1/cost-avoidance', costAvoidanceRoutes);
 
 // Error handler — must be last middleware
 app.use(errorHandler);
