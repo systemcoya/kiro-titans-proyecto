@@ -8,6 +8,10 @@ y este proyecto adhiere a [Versionamiento Semántico](https://semver.org/lang/es
 ## [No publicado]
 
 ### Agregado
+- Se agregó función `determineBudgetExceeded(totalCost, budget)` en showback.service.js para determinar si una célula excede su presupuesto asignado (overBudget flag)
+- Se creó test property-based para Property 13 (budget-exceeded.property.test.js) validando que el flag overBudget es true cuando el porcentaje de presupuesto excede 100% y false en caso contrario (Requirements 3.4)
+- Se creó backend/src/utils/aggregation.utils.js con funciones de cálculo de totales agregados (showback, savings, cost avoidance) usando aritmética de centavos para evitar errores de punto flotante
+- Se creó test property-based para Property 5 (aggregation-totals.property.test.js) validando que los totales reportados son exactamente iguales a la suma aritmética de sus componentes (Requirements 3.1, 7.5, 9.2)
 - Se configuró backend Express con helmet, cors, JSON parser, correlation-id y error handler centralizado
 - Se instalaron dependencias de producción con versiones exactas: express 4.21.2, cors 2.8.5, helmet 8.0.0, zod 3.24.1, uuid 11.0.5, dotenv 16.4.7, pg 8.13.1
 - Se creó estructura de carpetas backend: routes, middleware, config, utils, repositories, validators, mock
