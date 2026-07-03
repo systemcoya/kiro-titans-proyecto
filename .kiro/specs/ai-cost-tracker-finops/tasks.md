@@ -116,7 +116,7 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
     - Show "Sin presupuesto" for teams without budget
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 5. Checkpoint - Verify core cost modules
+- [x] 5. Checkpoint - Verify core cost modules
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 6. Implement Alerts System (Req 4)
@@ -206,7 +206,7 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
     - Show total estimated savings
     - _Requirements: 7.1, 7.4, 7.5, 7.6_
 
-- [ ] 10. Checkpoint - Verify alerts, megabill, simulator, governance
+- [x] 10. Checkpoint - Verify alerts, megabill, simulator, governance
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 11. Implement Self-Funding Comparison (Req 8)
@@ -335,7 +335,7 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
     - Use Jest + Supertest with mocked DB
     - _Requirements: 1.1, 4.1, 6.1, 10.1_
 
-- [ ] 17. Final checkpoint - Ensure all tests pass
+- [x] 17. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

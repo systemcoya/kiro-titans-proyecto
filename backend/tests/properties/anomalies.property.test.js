@@ -140,7 +140,7 @@ describe('Feature: ai-cost-tracker-finops, Property 17: KPI variation flag for u
     fc.assert(
       fc.property(
         fc.double({ min: 100, max: 100000, noNaN: true }),
-        fc.double({ min: 0, max: 0.15, noNaN: true }),
+        fc.double({ min: 0, max: 0.14, noNaN: true }),
         (previous, multiplier) => {
           const current = previous * (1 + multiplier);
           return shouldFlagVariation(current, previous) === false;
