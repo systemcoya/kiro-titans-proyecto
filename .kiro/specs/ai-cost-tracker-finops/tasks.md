@@ -7,7 +7,7 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
 ## Tasks
 
 - [ ] 1. Set up project structure and shared infrastructure
-  - [x] 1.1 Create backend project with Express, pg, Zod, and folder structure
+  - [ ] 1.1 Create backend project with Express, pg, Zod, and folder structure
     - Initialize `backend/` with `package.json`, install express, pg, zod, cors, helmet, uuid, dotenv
     - Create folder structure: `src/routes/`, `src/services/`, `src/repositories/`, `src/validators/`, `src/middleware/`, `src/mock/`, `src/config/`, `src/utils/`
     - Create `src/config/db.js` with pg pool configuration (env vars)
