@@ -1,189 +1,121 @@
-import { useState } from 'react';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { Cloud, Package, Key, ArrowLeft } from 'lucide-react';
-import { useMegaBill, useMegaBillDrillDown } from './hooks/useMegaBill';
-
-const CATEGORY_COLORS: Record<string, string> = {
-  cloud: '#3b82f6',
-  saas: '#8b5cf6',
-  licenses: '#f97316',
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  cloud: 'Cloud',
-  saas: 'SaaS',
-  licenses: 'Licencias',
-};
-
-const CATEGORY_ICONS: Record<string, typeof Cloud> = {
-  cloud: Cloud,
-  saas: Package,
-  licenses: Key,
-};
-
-/** Formats a number as USD currency. */
-function formatUsd(value: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
-}
+import { useMemo, useState } from 'react';
+import { useMegaBill } from './hooks/useMegaBill';
 
 /**
- * MegaBill page — Req 5.
- * Consolidated multi-technology cost view with donut chart and drill-down.
+ * MegaBill Page — Req 5.
+ * Consolidated view: AI + Cloud + SaaS from Google Sheets.
  */
 export default function MegaBillPage() {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { data, isLoading, isError, refetch } = useMegaBill();
-  const drillDown = useMegaBillDrillDown(selectedCategory);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">MegaBill — Vista Consolidada</h1>
-        <div className="animate-pulse space-y-4">
-          <div className="h-64 bg-muted rounded" />
-          <div className="h-32 bg-muted rounded" />
-        </div>
-      </div>
-    );
-  }
+  const categories = useMemo(() => {
+    if (!data?.data) return [];
+    const map: Record<string, { totalUsd: number; count: number }> = {};
+    for (const r of data.data) {
+      if (!map[r.category]) map[r.category] = { totalUsd: 0, count: 0 };
+      map[r.category].totalUsd += r.billedCostUsd;
+      map[r.category].count += 1;
+    }
+    const total = Object.values(map).reduce((s, v) => s + v.totalUsd, 0);
+    return Object.entries(map).map(([cat, vals]) => ({
+      category: cat,
+      totalUsd: vals.totalUsd,
+      totalCop: vals.totalUsd * 4200,
+      count: vals.count,
+      percentage: total > 0 ? ((vals.totalUsd / total) * 100).toFixed(1) : '0',
+    })).sort((a, b) => b.totalUsd - a.totalUsd);
+  }, [data]);
 
-  if (isError) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">MegaBill — Vista Consolidada</h1>
-        <div className="text-center py-8">
-          <p className="text-destructive mb-3">Error al cargar datos</p>
-          <button onClick={() => refetch()} className="px-4 py-2 border rounded-md text-sm hover:bg-muted">
-            Reintentar
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const drillDown = useMemo(() => {
+    if (!data?.data || !selectedCategory) return [];
+    const filtered = data.data.filter(r => r.category === selectedCategory);
+    const map: Record<string, { totalUsd: number; provider: string }> = {};
+    for (const r of filtered) {
+      if (!map[r.serviceName]) map[r.serviceName] = { totalUsd: 0, provider: r.provider };
+      map[r.serviceName].totalUsd += r.billedCostUsd;
+    }
+    return Object.entries(map).sort((a, b) => b[1].totalUsd - a[1].totalUsd);
+  }, [data, selectedCategory]);
 
-  if (!data || data.categories.length === 0) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">MegaBill — Vista Consolidada</h1>
-        <div className="text-center py-8 text-muted-foreground">
-          No hay datos de gasto disponibles.
-        </div>
-      </div>
-    );
-  }
+  const grandTotal = categories.reduce((s, c) => s + c.totalUsd, 0);
+
+  if (isLoading) return <div className="animate-pulse p-6"><div className="h-8 bg-gray-200 rounded w-1/3 mb-4" /><div className="h-64 bg-gray-200 rounded" /></div>;
+  if (isError) return <div className="text-center py-12"><p className="text-red-600">Error cargando datos</p><button onClick={() => refetch()} className="mt-4 px-4 py-2 border rounded">Reintentar</button></div>;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        {selectedCategory && (
-          <button onClick={() => setSelectedCategory(null)} className="p-2 hover:bg-muted rounded-md">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-        )}
-        <h1 className="text-2xl font-bold">MegaBill — Vista Consolidada</h1>
-        <span className="text-lg text-muted-foreground ml-auto">{formatUsd(data.totalCost)}</span>
+      <h1 className="text-2xl font-bold">MegaBill — Vista Consolidada</h1>
+      <p className="text-gray-500 text-sm">Gasto tecnológico total normalizado FOCUS. Fuente: Google Sheets</p>
+
+      {/* Grand Total */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="p-4 border rounded-lg bg-white shadow-sm">
+          <p className="text-xs text-gray-500">Total Tecnológico (USD)</p>
+          <p className="text-3xl font-bold text-blue-600">${grandTotal.toLocaleString()}</p>
+        </div>
+        <div className="p-4 border rounded-lg bg-white shadow-sm">
+          <p className="text-xs text-gray-500">Total Tecnológico (COP)</p>
+          <p className="text-3xl font-bold text-green-600">${(grandTotal * 4200).toLocaleString()}</p>
+        </div>
       </div>
 
-      {/* Summary view */}
-      {!selectedCategory && (
-        <>
-          {/* Category cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {data.categories.map((cat) => {
-              const Icon = CATEGORY_ICONS[cat.category] || Cloud;
-              return (
-                <button
-                  key={cat.category}
-                  onClick={() => setSelectedCategory(cat.category)}
-                  className="p-4 border rounded-lg hover:shadow-md transition-shadow text-left"
-                  style={{ borderLeftColor: CATEGORY_COLORS[cat.category], borderLeftWidth: 4 }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <Icon className="h-5 w-5" style={{ color: CATEGORY_COLORS[cat.category] }} />
-                    <span className="font-medium">{CATEGORY_LABELS[cat.category]}</span>
-                  </div>
-                  <p className="text-xl font-bold">{formatUsd(cat.totalCost)}</p>
-                  <p className="text-sm text-muted-foreground">{cat.percentage.toFixed(1)}%</p>
-                </button>
-              );
-            })}
-          </div>
+      {/* Category Breakdown */}
+      <div className="border rounded-lg bg-white shadow-sm p-4">
+        <h2 className="text-lg font-semibold mb-3">Por Categoría</h2>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b text-left text-gray-500">
+              <th className="py-2">Categoría</th>
+              <th className="py-2 text-right">Total USD</th>
+              <th className="py-2 text-right">Total COP</th>
+              <th className="py-2 text-right">Registros</th>
+              <th className="py-2 text-right">% del Total</th>
+              <th className="py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {categories.map((c) => (
+              <tr key={c.category} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedCategory(c.category)}>
+                <td className="py-2 font-medium capitalize">{c.category === 'ai' ? '🤖 AI' : c.category === 'cloud' ? '☁️ Cloud' : '📦 SaaS/Licencias'}</td>
+                <td className="py-2 text-right">${c.totalUsd.toLocaleString()}</td>
+                <td className="py-2 text-right">${c.totalCop.toLocaleString()}</td>
+                <td className="py-2 text-right">{c.count}</td>
+                <td className="py-2 text-right font-medium">{c.percentage}%</td>
+                <td className="py-2 text-right text-blue-500">Ver →</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-          {/* Donut chart */}
-          <div className="flex justify-center">
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={data.categories}
-                  dataKey="totalCost"
-                  nameKey="category"
-                  innerRadius={60}
-                  outerRadius={110}
-                  paddingAngle={2}
-                  onClick={(_, index) => setSelectedCategory(data.categories[index].category)}
-                  cursor="pointer"
-                >
-                  {data.categories.map((cat) => (
-                    <Cell key={cat.category} fill={CATEGORY_COLORS[cat.category]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value: number) => formatUsd(value)}
-                  labelFormatter={(label: string) => CATEGORY_LABELS[label] || label}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </>
-      )}
-
-      {/* Drill-down view */}
+      {/* Drill-down */}
       {selectedCategory && (
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">
-            Detalle: {CATEGORY_LABELS[selectedCategory]}
-          </h2>
-
-          {drillDown.isLoading && (
-            <div className="animate-pulse space-y-2">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-10 bg-muted rounded" />
+        <div className="border rounded-lg bg-white shadow-sm p-4">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-lg font-semibold">Drill-down: {selectedCategory.toUpperCase()}</h2>
+            <button onClick={() => setSelectedCategory('')} className="text-sm text-gray-500 hover:text-gray-700">✕ Cerrar</button>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-gray-500">
+                <th className="py-2">Servicio</th>
+                <th className="py-2">Proveedor</th>
+                <th className="py-2 text-right">Total USD</th>
+                <th className="py-2 text-right">Total COP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {drillDown.map(([name, vals]) => (
+                <tr key={name} className="border-b hover:bg-gray-50">
+                  <td className="py-2 font-medium">{name}</td>
+                  <td className="py-2">{vals.provider}</td>
+                  <td className="py-2 text-right">${vals.totalUsd.toLocaleString()}</td>
+                  <td className="py-2 text-right">${(vals.totalUsd * 4200).toLocaleString()}</td>
+                </tr>
               ))}
-            </div>
-          )}
-
-          {drillDown.data && drillDown.data.services.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="py-3 px-2">Servicio</th>
-                    <th className="py-3 px-2 text-right">Costo Facturado</th>
-                    <th className="py-3 px-2 text-right">Uso</th>
-                    <th className="py-3 px-2">Proveedor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {drillDown.data.services.map((svc) => (
-                    <tr key={`${svc.serviceName}-${svc.provider}`} className="border-b hover:bg-muted/50">
-                      <td className="py-3 px-2 font-medium">{svc.serviceName}</td>
-                      <td className="py-3 px-2 text-right">{formatUsd(svc.billedCost)}</td>
-                      <td className="py-3 px-2 text-right">
-                        {new Intl.NumberFormat('en-US').format(svc.usageQuantity)}
-                      </td>
-                      <td className="py-3 px-2">{svc.provider}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {drillDown.data && drillDown.data.services.length === 0 && (
-            <p className="text-muted-foreground text-center py-4">
-              No hay servicios disponibles para esta categoría.
-            </p>
-          )}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

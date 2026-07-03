@@ -373,6 +373,47 @@ app.get('/api/v1/anomalies', (req, res) => {
 });
 
 // ============================================================================
+// ALIAS ROUTES — /sheets/* → same data as /costs/* (for Google Sheets hooks)
+// ============================================================================
+
+app.get('/api/v1/sheets/ai-costs', (req, res) => {
+  const allCosts = [...AI_COSTS, ...AI_HISTORICAL];
+  res.json({ data: allCosts.map(c => ({ mes: c.mes, proveedor: c.proveedor, servicioAI: c.servicio, centroCostos: c.cc, producto: c.producto, llamadasApi: c.llamadas || 0, tokensConsumidos: c.tokens || 0, costoAiUsd: c.costo, aplicacion: 'Venta de Pólizas de Autos' })), count: allCosts.length });
+});
+
+app.get('/api/v1/sheets/infra-costs', (req, res) => {
+  res.json({ data: INFRA_COSTS.map(c => ({ mes: c.mes, proveedor: c.proveedor, servicio: c.servicio, costoInfraUsd: c.costo, aplicacion: 'Venta de Pólizas de Autos', producto: c.producto, centroCostos: c.cc })), count: INFRA_COSTS.length });
+});
+
+app.get('/api/v1/sheets/megabill', (req, res) => {
+  const ai = AI_COSTS.map(c => ({ mes: c.mes, serviceName: c.servicio, provider: c.proveedor, category: 'ai', billedCostUsd: c.costo, producto: c.producto, centroCostos: c.cc }));
+  const cloud = INFRA_COSTS.map(c => ({ mes: c.mes, serviceName: c.servicio, provider: c.proveedor, category: 'cloud', billedCostUsd: c.costo, producto: c.producto, centroCostos: c.cc }));
+  const saas = SAAS_COSTS_2026_06.map(c => ({ mes: '2026-06', serviceName: c.concepto, provider: c.proveedor, category: 'saas', billedCostUsd: c.costo, producto: c.producto, centroCostos: c.cc }));
+  const all = [...ai, ...cloud, ...saas];
+  res.json({ data: all, count: all.length });
+});
+
+app.get('/api/v1/sheets/unit-economics', (req, res) => {
+  const polizas = POLIZAS;
+  const result = polizas.map(p => {
+    const aiCost = AI_COSTS.filter(c => c.mes === p.mes && c.cc === (p.producto === 'Autos verde' ? '5100' : p.producto === 'Autos ligeros' ? '5101' : '5102')).reduce((s, c) => s + c.costo, 0);
+    const unitCost = p.polizas > 0 ? parseFloat((aiCost / p.polizas).toFixed(4)) : null;
+    return { mes: p.mes, producto: p.producto, totalCostAiUsd: aiCost, polizasEmitidas: p.polizas, primasEmitidasUsd: p.primas, costoPorPolizaUsd: unitCost, costoPorPolizaCop: unitCost !== null ? Math.round(unitCost * 4200) : null };
+  });
+  res.json({ data: result, count: result.length });
+});
+
+app.get('/api/v1/sheets/sync', (req, res) => {
+  res.json({
+    aiCosts: AI_COSTS.map(c => ({ mes: c.mes, proveedor: c.proveedor, costoAiUsd: c.costo, tokensConsumidos: c.tokens || 0, llamadasApi: c.llamadas || 0, servicioAI: c.servicio, producto: c.producto })),
+    infraCosts: INFRA_COSTS.map(c => ({ mes: c.mes, proveedor: c.proveedor, costoInfraUsd: c.costo, servicio: c.servicio, producto: c.producto })),
+    otherCosts: SAAS_COSTS_2026_06.map(c => ({ mes: '2026-06', proveedor: c.proveedor, costoTotalUsd: c.costo, conceptoGasto: c.concepto, producto: c.producto })),
+    policies: POLIZAS.map(p => ({ mes: p.mes, producto: p.producto, polizasEmitidas: p.polizas, primasEmitidasUsd: p.primas })),
+    syncedAt: new Date().toISOString()
+  });
+});
+
+// ============================================================================
 // START SERVER
 // ============================================================================
 

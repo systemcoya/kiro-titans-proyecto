@@ -1,47 +1,41 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/api-client';
-import type { AISpendResponse, CostFilters } from '@/types';
+
+interface AISpendItem {
+  mes: string;
+  proveedor: string;
+  servicioAI: string;
+  centroCostos: string;
+  producto: string;
+  llamadasApi: number;
+  tokensConsumidos: number;
+  costoAiUsd: number;
+  aplicacion: string;
+}
+
+interface AISpendResponse {
+  data: AISpendItem[];
+  count: number;
+}
 
 /**
- * Fetches AI spend data with the given filters.
+ * Fetches AI spend data from Google Sheets endpoint (real data).
  */
-const fetchAISpend = async (filters: Partial<CostFilters> & { groupBy?: string }): Promise<AISpendResponse> => {
-  const params: Record<string, string> = {};
-  if (filters.startDate) params.startDate = filters.startDate;
-  if (filters.endDate) params.endDate = filters.endDate;
-  if (filters.team) params.team = filters.team;
-  if (filters.provider) params.provider = filters.provider;
-  if (filters.groupBy) params.groupBy = filters.groupBy;
-
-  const { data } = await apiClient.get<AISpendResponse>('/costs/ai-spend', { params });
+const fetchAISpend = async (): Promise<AISpendResponse> => {
+  const { data } = await apiClient.get<AISpendResponse>('/sheets/ai-costs');
   return data;
 };
 
 /**
- * React Query hook for AI spend data.
+ * React Query hook for AI spend data from Google Sheets.
  */
-export function useAISpend(filters: Partial<CostFilters> & { groupBy?: string }) {
+export function useAISpend() {
   return useQuery({
-    queryKey: ['ai-spend', filters],
-    queryFn: () => fetchAISpend(filters),
+    queryKey: ['ai-spend-sheets'],
+    queryFn: fetchAISpend,
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
 }
 
-/**
- * Mutation hook for temporal advance (simulates +1 hour of consumption).
- */
-export function useAdvanceTime() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async () => {
-      const { data } = await apiClient.post('/costs/ai-spend/advance');
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ai-spend'] });
-    },
-  });
-}
+export type { AISpendItem, AISpendResponse };

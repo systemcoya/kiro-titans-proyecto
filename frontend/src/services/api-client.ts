@@ -25,17 +25,19 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/
  */
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
+  withCredentials: false,
 });
 
-/** Interceptor de solicitud: agrega correlation-ID a cada request saliente */
+/** Interceptor de solicitud: agrega correlation-ID y auth token a cada request saliente */
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     config.headers.set('X-Correlation-ID', generateCorrelationId());
+    // Mock JWT token for prototype (hackathon)
+    config.headers.set('Authorization', 'Bearer mock-jwt-token-hackathon');
     return config;
   },
   (error) => Promise.reject(error)
@@ -47,11 +49,6 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response) {
       const { status } = error.response;
-
-      if (status === 401) {
-        window.location.href = '/login';
-        return Promise.reject(new Error('Sesión expirada. Redirigiendo al login.'));
-      }
 
       if (status >= 500) {
         return Promise.reject(new Error('Error interno del servidor. Intente nuevamente.'));
