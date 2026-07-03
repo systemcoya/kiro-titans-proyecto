@@ -93,7 +93,7 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
     - Add route GET `/api/v1/costs/showback`
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-  - [ ] 4.2 Write property test for budget percentage (Property 7)
+  - [x] 4.2 Write property test for budget percentage (Property 7)
     - **Property 7: Budget percentage calculation correctness**
     - Use fast-check to generate (totalCost, budget) pairs and verify percentage = (totalCost/budget)×100 rounded to 1 decimal; null budget yields exclusion from ranking
     - **Validates: Requirements 3.2, 3.5**

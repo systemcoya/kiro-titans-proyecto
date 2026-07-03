@@ -20,9 +20,9 @@ describe('Feature: ai-cost-tracker-finops, Property 7: Budget percentage calcula
       // **Validates: Requirements 3.2**
       fc.assert(
         fc.property(
-          // Given: a totalCost (positive USD amount) and a positive budget
-          fc.float({ min: 0, max: 10_000_000, noNaN: true, noDefaultInfinity: true }),
-          fc.float({ min: 0.01, max: 10_000_000, noNaN: true, noDefaultInfinity: true }),
+          // Given: a totalCost (0 or positive USD amount) and a positive budget
+          fc.integer({ min: 0, max: 99999999999 }).map(c => c / 100),
+          fc.integer({ min: 1, max: 99999999999 }).map(c => c / 100),
           (totalCost, budget) => {
             // When: we calculate budget percentage
             const result = calculateBudgetPercentage(totalCost, budget);
@@ -43,8 +43,8 @@ describe('Feature: ai-cost-tracker-finops, Property 7: Budget percentage calcula
       fc.assert(
         fc.property(
           // Given: any positive totalCost and positive budget
-          fc.float({ min: 0, max: 10_000_000, noNaN: true, noDefaultInfinity: true }),
-          fc.float({ min: 0.01, max: 10_000_000, noNaN: true, noDefaultInfinity: true }),
+          fc.integer({ min: 0, max: 99999999999 }).map(c => c / 100),
+          fc.integer({ min: 1, max: 99999999999 }).map(c => c / 100),
           (totalCost, budget) => {
             // When: we calculate budget percentage
             const result = calculateBudgetPercentage(totalCost, budget);
@@ -65,7 +65,7 @@ describe('Feature: ai-cost-tracker-finops, Property 7: Budget percentage calcula
       fc.assert(
         fc.property(
           // Given: any positive totalCost with null budget
-          fc.float({ min: 0, max: 10_000_000, noNaN: true, noDefaultInfinity: true }),
+          fc.integer({ min: 0, max: 99999999999 }).map(c => c / 100),
           (totalCost) => {
             // When: we calculate budget percentage with null budget
             const result = calculateBudgetPercentage(totalCost, null);
@@ -86,7 +86,7 @@ describe('Feature: ai-cost-tracker-finops, Property 7: Budget percentage calcula
       fc.assert(
         fc.property(
           // Given: any positive totalCost with zero budget
-          fc.float({ min: 0, max: 10_000_000, noNaN: true, noDefaultInfinity: true }),
+          fc.integer({ min: 0, max: 99999999999 }).map(c => c / 100),
           (totalCost) => {
             // When: we calculate budget percentage with zero budget
             const result = calculateBudgetPercentage(totalCost, 0);
@@ -107,8 +107,8 @@ describe('Feature: ai-cost-tracker-finops, Property 7: Budget percentage calcula
       fc.assert(
         fc.property(
           // Given: totalCost and budget that produce a valid percentage
-          fc.float({ min: 0.01, max: 10_000_000, noNaN: true, noDefaultInfinity: true }),
-          fc.float({ min: 0.01, max: 10_000_000, noNaN: true, noDefaultInfinity: true }),
+          fc.integer({ min: 1, max: 99999999999 }).map(c => c / 100),
+          fc.integer({ min: 1, max: 99999999999 }).map(c => c / 100),
           (totalCost, budget) => {
             // When: we calculate budget percentage
             const result = calculateBudgetPercentage(totalCost, budget);
