@@ -54,13 +54,18 @@ export default function SimulatorPage() {
         <div>
           <label className="text-xs text-muted-foreground">Incremento de uso (%)</label>
           <input
-            type="number"
+            type="range"
             min="1"
             max="500"
             value={increment}
             onChange={(e) => setIncrement(e.target.value)}
-            className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
+            className="w-full mt-2"
           />
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>1%</span>
+            <span className="font-bold text-foreground">{increment}%</span>
+            <span>500%</span>
+          </div>
         </div>
         <button
           onClick={handleSimulate}
