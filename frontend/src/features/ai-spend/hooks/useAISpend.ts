@@ -1,41 +1,25 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/api-client';
 
-interface AISpendItem {
-  mes: string;
-  proveedor: string;
-  servicioAI: string;
-  centroCostos: string;
-  producto: string;
-  llamadasApi: number;
-  tokensConsumidos: number;
-  costoAiUsd: number;
-  aplicacion: string;
-}
-
-interface AISpendResponse {
-  data: AISpendItem[];
-  count: number;
-}
-
-/**
- * Fetches AI spend data from Google Sheets endpoint (real data).
- */
-const fetchAISpend = async (): Promise<AISpendResponse> => {
-  const { data } = await apiClient.get<AISpendResponse>('/sheets/ai-costs');
+const fetchAISpend = async (filters: Record<string, string> = {}) => {
+  const { data } = await apiClient.get('/costs/ai-spend', { params: filters });
   return data;
 };
 
-/**
- * React Query hook for AI spend data from Google Sheets.
- */
-export function useAISpend() {
+export function useAISpend(filters: Record<string, string> = {}) {
   return useQuery({
-    queryKey: ['ai-spend-sheets'],
-    queryFn: fetchAISpend,
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
+    queryKey: ['ai-spend', filters],
+    queryFn: () => fetchAISpend(filters),
   });
 }
 
-export type { AISpendItem, AISpendResponse };
+export function useAdvanceTime() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await apiClient.post('/costs/ai-spend/advance');
+      return data;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ai-spend'] }); },
+  });
+}

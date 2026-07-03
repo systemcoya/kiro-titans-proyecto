@@ -1,0 +1,136 @@
+# Implementation Plan
+
+## Overview
+
+AI Cost Tracker & FinOps Governance Engine — Implementation plan for the Strategy Cockpit module that unifies AI and cloud cost visibility, implements proactive governance, enables showback per development cell, and demonstrates ROI. The implementation follows a Golden Path priority (HUF01, HUF02, HUF03, HUF04, HUF08) before secondary features (HUF05, HUF06, HUF07, HUF10).
+
+## Tasks
+
+- [ ] 0. Project Setup & Infrastructure Base [GOLDEN]
+  - **Implements:** Requirements 10, 11, 12, 13, 14 (base)
+  - [ ] 0.1 Initialize backend project (Node.js 20 + Express 4.x) with package.json, tsconfig (if needed), folder structure per design doc (`backend/src/{config,middleware,features,shared}`)
+    - _Requirements: 10, 13_
+  - [ ] 0.2 Create Docker Compose (docker-compose.yml) with services: backend (Node.js), frontend (React+Vite), postgres (PostgreSQL 15+); include health checks and .env.example
+    - _Requirements: 13.1, 13.2, 13.5, 13.6_
+  - [ ] 0.3 Implement `backend/src/config/database.js` — PostgreSQL pool (pg 8.x) with graceful shutdown and connection validation
+    - _Requirements: 14.1, 12.4_
+  - [ ] 0.4 Implement `backend/src/config/environment.js` — Zod-validated env vars (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, JWT_SECRET, EXCHANGE_RATE_USD_COP, PORT)
+    - _Requirements: 13.4_
+  - [ ] 0.5 Implement core middleware stack: `correlation-id.js` (UUID v4 per request), `logger.js` (structured JSON: timestamp, level, service, correlation_id, message), `auth.js` (JWT validation with Passport.js), `rbac.js` (role-based access), `error-handler.js` (generic client errors + correlation_id, no stack traces), `validator.js` (Zod schema middleware)
+    - _Requirements: 10.4, 10.5, 10.6, 11.1, 11.2, 11.3, 11.4, 11.5, 12.1, 12.2, 12.3_
+  - [ ] 0.6 Implement `backend/src/app.js` (Express setup: helmet, cors, middleware chain, route mounting) and `backend/src/server.js` (listen + graceful shutdown)
+    - _Requirements: 10.1_
+  - [ ] 0.7 Implement `/health` endpoint — verifies DB connectivity, returns 200 `{status:"healthy"}` or 503 `{status:"unhealthy"}`
+    - _Requirements: 12.4, 12.5_
+  - [ ] 0.8 Create core table migrations (node-pg-migrate): `cells`, `providers`, `services`, `users`, `exchange_rates` + all indexes per design
+    - _Requirements: 14.1, 14.5_
+  - [ ] 0.9 Create seed script for base data: 5 cells (Vida, Autos, Siniestros, Digital, Datos), 3 AI providers (AWS Bedrock, OpenAI, Anthropic), 3 cloud providers (AWS, Azure, GCP), services per provider, exchange_rates, test users (admin, manager, viewer)
+    - _Requirements: 14.2, 14.3_
+  - [ ] 0.10 Initialize frontend project (React 18 + Vite 5.x + TypeScript 5.x) with folder structure per design doc (`src/{components,features,services,hooks,types,config,lib}`)
+    - _Requirements: 13.1_
+  - [ ]* 0.11 Write property test for correlation-id uniqueness (Property 24) — generate N concurrent requests, assert all correlation_ids are distinct
+    - **Property 24: Correlation-ID Uniqueness**
+    - **Validates: Requirements 12.2**
+  - [ ]* 0.12 Write unit tests for auth middleware (Property 21) — valid JWT passes, expired JWT → 401, missing JWT → 401, invalid signature → 401
+    - **Property 21: JWT Authentication**
+    - **Validates: Requirements 11.1, 11.2, 11.3**
+  - [ ]* 0.13 Write unit tests for RBAC middleware (Property 22) — viewer blocked from write ops, manager/admin allowed
+    - **Property 22: Role-Based Access Control**
+    - **Validates: Requirements 11.4, 11.5**
+  - [ ]* 0.14 Write unit test for error-handler (Property 23) — internal errors return correlation_id, no stack traces
+    - **Property 23: Error Response Safety**
+    - **Validates: Requirements 10.6**
+
+- [ ] 1. HUF01 — AI Cost Dashboard (Vertical Slice) [GOLDEN]
+  - **Implements:** Requirement 1 (AI Cost Dashboard), Properties 1, 2
+  - [ ] 1.1 Create migration for `cost_records` table with indexes (`idx_cost_records_period_cell`, `idx_cost_records_service_period`, `idx_cost_records_category`)
+    - _Requirements: 14.1, 14.5_
+  - [ ] 1.2 Create seed data for cost_records: minimum 20 records across 3 AI providers, 5 cells, multiple period_dates (6 months), varying usage_units (tokens, inferences, gpu_hours)
+    - _Requirements: 14.2, 14.3, 1.6_
+  - [ ] 1.3 Implement `dashboard.repository.js` — queries: getAICosts(filters), getConsumptionMetrics(filters) with parameterized queries supporting optional date range, cell_id, provider_id filters
+    - _Requirements: 1.1, 1.2, 1.3, 1.4_
+  - [ ] 1.4 Implement `dashboard.service.js` — business logic: aggregate costs by service/team/provider, compute consumption metrics (tokens, inferences, gpu_hours), empty state handling, lastUpdated timestamp
+    - _Requirements: 1.1, 1.5, 1.7, 1.8_
+  - [ ] 1.5 Implement `dashboard.controller.js` + `dashboard.routes.js` — endpoints: `GET /api/v1/dashboard/ai-costs` (query params: startDate, endDate, cellId, providerId), `GET /api/v1/dashboard/ai-costs/metrics`
+    - _Requirements: 1.1, 1.2, 1.3, 1.4_
+  - [ ] 1.6 Implement `dashboard.schemas.js` — Zod validation for query params (dates as ISO strings, UUIDs for cellId/providerId)
+    - _Requirements: 10.1_
+  - [ ] 1.7 Implement React feature `src/features/ai-dashboard/` — components: CostSummaryCards, CostByServiceChart, CostByTeamChart, CostByProviderChart, MetricsPanel, FilterBar, EmptyState
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.8_
+  - [ ]* 1.8 Write property test for cost filter correctness (Property 1) — for any filter combo, all returned records match the criteria
+    - **Property 1: Cost Filter Correctness**
+    - **Validates: Requirements 1.2, 1.3, 1.4**
+  - [ ]* 1.9 Write property test for consumption metrics aggregation (Property 2) — aggregated metrics equal sum of usage_quantity grouped by unit type
+    - **Property 2: Consumption Metrics Aggregation**
+    - **Validates: Requirements 1.5**
+
+- [ ] 2. HUF02 — Unit Economics (Vertical Slice) [GOLDEN]
+  - **Implements:** Requirement 2 (Unit Economics), Properties 3, 4
+  - [ ] 2.1 Create migration for `transactions` table with indexes (`idx_transactions_period_service`, `idx_transactions_use_case`)
+    - _Requirements: 14.1, 14.5_
+  - [ ] 2.2 Create seed data for transactions: minimum 20 records across 3 business use cases (policy_quotation, claim_analysis, customer_service), 5 cells, 8+ weeks of data
+    - _Requirements: 14.2, 14.4, 2.2_
+  - [ ] 2.3 Implement `unit-economics.repository.js` — queries: getUnitCosts(periodFilter), getWeeklyTrends(weeks) with parameterized queries joining cost_records and transactions
+    - _Requirements: 2.1, 2.3_
+  - [ ] 2.4 Implement `unit-economics.service.js` — business logic: calculate unitCost = totalCost / transactions (null when transactions=0), compute weekly sparkline trends (8 weeks), detect >20% week-over-week warning
+    - _Requirements: 2.4, 2.5, 2.6_
+  - [ ] 2.5 Implement `unit-economics.controller.js` + `unit-economics.routes.js` — endpoints: `GET /api/v1/unit-economics`, `GET /api/v1/unit-economics/trends`
+    - _Requirements: 2.1_
+  - [ ] 2.6 Implement `unit-economics.schemas.js` — Zod validation for period filter params
+    - _Requirements: 10.1_
+  - [ ] 2.7 Implement React feature `src/features/unit-economics/` — components: UnitCostTable (with sparklines), WarningIndicator, EmptyState
+    - _Requirements: 2.1, 2.2, 2.3, 2.5, 2.6_
+  - [ ]* 2.8 Write property test for unit cost calculation (Property 3) — for any positive cost and positive transactions, result = cost/transactions; for zero transactions, result = null
+    - **Property 3: Unit Cost Calculation**
+    - **Validates: Requirements 2.4, 2.6**
+  - [ ]* 2.9 Write property test for warning threshold detection (Property 4) — hasWarning = true iff (current - previous) / previous > 0.20
+    - **Property 4: Warning Threshold Detection**
+    - **Validates: Requirements 2.5**
+
+- [ ] 3. HUF03 — Showback per Cell (Vertical Slice) [GOLDEN]
+  - **Implements:** Requirement 3 (Showback/Chargeback per Cell), Properties 5, 6, 7
+  - [ ] 3.1 Implement `showback.repository.js` — queries: getCellCosts(periodFilter), getCellDetail(cellId), getEfficiencyRanking() with joins to cost_records and transactions grouped by cell and category
+    - _Requirements: 3.1, 3.7_
+  - [ ] 3.2 Implement `showback.service.js` — business logic: compute cloudCostCop/aiCostCop/saasCostCop per cell, budgetUsagePercent, budgetStatus classification (normal/warning/critical), efficiency ranking sort by cost-per-transaction
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+  - [ ] 3.3 Implement `showback.controller.js` + `showback.routes.js` — endpoints: `GET /api/v1/showback/cells`, `GET /api/v1/showback/cells/:cellId`, `GET /api/v1/showback/ranking`
+    - _Requirements: 3.1, 3.5, 3.7_
+  - [ ] 3.4 Implement `showback.schemas.js` — Zod validation for cellId param (UUID)
+    - _Requirements: 10.1_
+  - [ ] 3.5 Implement React feature `src/features/showback/` — components: CellCostTable (with budget indicators), CellDetailPanel, EfficiencyRankingTable, WarningHighlight, CriticalHighlight
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
+  - [ ]* 3.6 Write property test for cell cost category invariant (Property 5) — totalCostCop = cloudCostCop + aiCostCop + saasCostCop
+    - **Property 5: Cell Cost Category Invariant**
+    - **Validates: Requirements 3.1**
+  - [ ]* 3.7 Write property test for budget status classification (Property 6) — critical when P>=100, warning when 80<=P<100, normal when P<80
+    - **Property 6: Budget Status Classification**
+    - **Validates: Requirements 3.3, 3.4**
+  - [ ]* 3.8 Write property test for efficiency ranking sort order (Property 7) — each element's ratio <= next element's ratio
+    - **Property 7: Efficiency Ranking Sort Order**
+    - **Validates: Requirements 3.5**
+
+- [ ] 4. HUF04 — Configurable Threshold Alerts (Vertical Slice) [GOLDEN]
+  - **Implements:** Requirement 4 (Threshold Alerts), Properties 8, 9, 10
+  - [ ] 4.1 Create migration for `alert_rules` and `alert_history` tables with indexes (`idx_alert_rules_service_active`, `idx_alert_history_triggered`)
+    - _Requirements: 14.1, 14.5_
+  - [ ] 4.2 Create seed data for alert_rules: minimum 5 alert rules with varying severities, plus alert_history entries
+    - _Requirements: 14.2_
+  - [ ] 4.3 Implement `alerts.repository.js` — queries: listAlerts(), createAlert(data), updateAlert(id, data), deleteAlert(id), getAlertHistory(filter), findActiveByServiceId(serviceId)
+    - _Requirements: 4.1, 4.7_
+  - [ ] 4.4 Implement `alerts.service.js` — business logic: CRUD operations, severity calculation (none/warning/critical based on 80%/100% threshold), duplicate service check (ConflictError), evaluateAlerts() to update severities
+    - _Requirements: 4.1, 4.4, 4.5, 4.6, 4.8_
+  - [ ] 4.5 Implement `alerts.controller.js` + `alerts.routes.js` — endpoints: `GET /api/v1/alerts`, `POST /api/v1/alerts`, `PUT /api/v1/alerts/:id`, `DELETE /api/v1/alerts/:id`, `GET /api/v1/alerts/history`; apply RBAC (POST/PUT: manager+admin, DELETE: admin only)
+    - _Requirements: 4.1, 4.7, 11.4, 11.5_
+  - [ ] 4.6 Implement `alerts.schemas.js` — Zod validation: serviceId (UUID), thresholdCop (positive number > 0), recipientEmail (valid email)
+    - _Requirements: 4.2, 4.3_
+  - [ ] 4.7 Implement React feature `src/features/alerts/` — components: AlertRulesList, CreateAlertForm (with validation), AlertHistoryTable, SeverityBadge, EditAlertModal, DeleteConfirmation
+    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.7, 4.8_
+  - [ ]* 4.8 Write property test for alert severity calculation (Property 8) — critical when C>=T, warning when C>=0.8*T and C<T, none when C<0.8*T
+    - **Property 8: Alert Severity Calculation**
+    - **Validates: Requirements 4.5, 4.6**
+  - [ ]* 4.9 Write property test for alert validation rejects invalid inputs (Property 9) — zero/negative threshold rejected, invalid email rejected
+    - **Property 9: Alert Input Validation**
+    - **Validates: Requirements 4.2, 4.3**
+  - [ ]* 4.10 Write unit test for alert service uniqueness constraint (Property 10) — duplicate service_id with active rule returns 409 ConflictError
+    - **Property 10: Alert Uniqueness Constraint**
+    - **Validates: Requirements 4.8**

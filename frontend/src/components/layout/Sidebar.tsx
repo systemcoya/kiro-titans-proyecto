@@ -27,16 +27,9 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard Ejecutivo', path: '/executive', icon: <LayoutDashboard size={20} /> },
   { label: 'Gasto IA', path: '/ai-spend', icon: <BarChart3 size={20} /> },
-  { label: 'Unit Economics', path: '/unit-economics', icon: <Calculator size={20} /> },
-  { label: 'Showback', path: '/showback', icon: <Users size={20} /> },
+  { label: 'Showback & ROI', path: '/showback', icon: <Users size={20} /> },
   { label: 'Alertas', path: '/alerts', icon: <Bell size={20} /> },
-  { label: 'MegaBill', path: '/megabill', icon: <FileText size={20} /> },
-  { label: 'Simulador', path: '/simulator', icon: <TrendingUp size={20} /> },
-  { label: 'Gobernanza', path: '/governance', icon: <Shield size={20} /> },
-  { label: 'Self-Funding', path: '/self-funding', icon: <PiggyBank size={20} /> },
-  { label: 'Costos Evitados', path: '/cost-avoidance', icon: <ShieldCheck size={20} /> },
-  { label: 'Etiquetado', path: '/tagging', icon: <Tags size={20} /> },
-  { label: 'Anomalías', path: '/anomalies', icon: <AlertTriangle size={20} /> },
+  { label: 'Simulador What-If', path: '/simulator', icon: <TrendingUp size={20} /> },
 ];
 
 /**

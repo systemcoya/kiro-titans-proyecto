@@ -1,9 +1,33 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, Component } from 'react';
+import type { ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
+
+/** Error boundary to prevent white screen crashes */
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: string }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: '' };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error: error.message };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 text-center">
+          <p className="text-red-600 font-medium">Error al cargar el módulo</p>
+          <p className="text-sm text-gray-500 mt-2">{this.state.error}</p>
+          <button onClick={() => { this.setState({ hasError: false }); window.location.reload(); }} className="mt-4 px-4 py-2 border rounded hover:bg-gray-100 text-sm">Recargar</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Lazy-loaded feature pages
 const ExecutivePage = lazy(() => import('@/features/executive/ExecutivePage'));
@@ -22,9 +46,7 @@ const AnomaliesPage = lazy(() => import('@/features/anomalies/AnomaliesPage'));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,
-      retry: false,
-      refetchOnWindowFocus: false,
+      staleTime: 60 * 1000,
     },
   },
 });
@@ -51,23 +73,18 @@ function App() {
           <div className="flex flex-col flex-1 overflow-hidden">
             <Header />
             <main className="flex-1 overflow-y-auto p-6">
+              <ErrorBoundary>
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                   <Route path="/" element={<Navigate to="/executive" replace />} />
                   <Route path="/executive" element={<ExecutivePage />} />
                   <Route path="/ai-spend" element={<AISpendPage />} />
-                  <Route path="/unit-economics" element={<UnitEconomicsPage />} />
                   <Route path="/showback" element={<ShowbackPage />} />
                   <Route path="/alerts" element={<AlertsPage />} />
-                  <Route path="/megabill" element={<MegaBillPage />} />
                   <Route path="/simulator" element={<SimulatorPage />} />
-                  <Route path="/governance" element={<GovernancePage />} />
-                  <Route path="/self-funding" element={<SelfFundingPage />} />
-                  <Route path="/cost-avoidance" element={<CostAvoidancePage />} />
-                  <Route path="/tagging" element={<TaggingPage />} />
-                  <Route path="/anomalies" element={<AnomaliesPage />} />
                 </Routes>
               </Suspense>
+              </ErrorBoundary>
             </main>
           </div>
         </div>
