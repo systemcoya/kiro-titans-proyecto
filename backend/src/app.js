@@ -59,6 +59,14 @@ app.use('/api/v1/cost-avoidance', require('./routes/cost-avoidance.routes'));
 app.use('/api/v1/tagging', require('./routes/tagging.routes'));
 app.use('/api/v1/anomalies', require('./routes/anomaly.routes'));
 
+// Jorge's advanced services
+app.use('/api/v1/alerts', require('./routes/alerts.routes'));
+app.use('/api/v1/simulator', require('./routes/simulator.routes'));
+app.use('/api/v1/governance', require('./routes/governance.routes'));
+app.use('/api/v1/self-funding', require('./routes/self-funding.routes'));
+app.use('/api/v1/executive', require('./routes/executive.routes'));
+app.get('/api/v1/finops/summary', require('./controllers/finops-summary.controller').getSummary);
+
 // Error handler — must be last middleware
 app.use(errorHandler);
 
