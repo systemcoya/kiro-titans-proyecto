@@ -98,12 +98,12 @@ Implementación incremental del módulo "Strategy Cockpit" FinOps para Seguros B
     - Use fast-check to generate (totalCost, budget) pairs and verify percentage = (totalCost/budget)×100 rounded to 1 decimal; null budget yields exclusion from ranking
     - **Validates: Requirements 3.2, 3.5**
 
-  - [ ] 4.3 Write property test for aggregation totals (Property 5)
+  - [x] 4.3 Write property test for aggregation totals (Property 5)
     - **Property 5: Aggregated totals equal sum of components**
     - Use fast-check to generate (cloudCost, aiCost, saasCost) tuples and verify totalCost === cloud + AI + SaaS exactly
     - **Validates: Requirements 3.1, 7.5, 9.2**
 
-  - [ ] 4.4 Write property test for budget exceeded flag (Property 13)
+  - [x] 4.4 Write property test for budget exceeded flag (Property 13)
     - **Property 13: Budget exceeded flag set correctly**
     - Use fast-check to generate teams with varying budget percentages and verify overBudget flag is true when >100% and false otherwise
     - **Validates: Requirements 3.4**

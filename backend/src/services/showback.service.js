@@ -28,6 +28,24 @@ const calculateBudgetPercentage = (totalCost, budget) => {
   };
 };
 
+/**
+ * Determines if a team has exceeded its assigned budget.
+ * @param {number} totalCost - Total cost in USD for the team.
+ * @param {number|null} budget - Assigned budget in USD, or null if not assigned.
+ * @returns {{ overBudget: boolean }}
+ *   - overBudget: true if totalCost > budget (i.e., budget percentage > 100%), false otherwise.
+ *   - If budget is null, undefined, or 0, returns false (cannot exceed a non-existent budget).
+ */
+const determineBudgetExceeded = (totalCost, budget) => {
+  if (budget === null || budget === undefined || budget === 0) {
+    return { overBudget: false };
+  }
+
+  const percentage = (totalCost / budget) * 100;
+  return { overBudget: percentage > 100 };
+};
+
 module.exports = {
-  calculateBudgetPercentage
+  calculateBudgetPercentage,
+  determineBudgetExceeded
 };
