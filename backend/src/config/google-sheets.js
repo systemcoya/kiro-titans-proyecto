@@ -34,17 +34,26 @@ const getSheetsClient = async () => {
     });
   } else {
     // From file (local development)
-    const credentialsPath = path.join(__dirname, '..', '..', 'credentials.json');
+    const credentialsPath = path.join(__dirname, '..', '..', 'gestion-estrategica-ti-380e3b6dfc6f.json');
     if (!fs.existsSync(credentialsPath)) {
-      throw new Error(
-        'No se encontraron credenciales de Google. ' +
-        'Coloca credentials.json en backend/ o define GOOGLE_CREDENTIALS_JSON como variable de entorno.'
-      );
+      const altPath = path.join(__dirname, '..', '..', 'credentials.json');
+      if (fs.existsSync(altPath)) {
+        auth = new google.auth.GoogleAuth({
+          keyFile: altPath,
+          scopes: SCOPES,
+        });
+      } else {
+        throw new Error(
+          'No se encontraron credenciales de Google. ' +
+          'Coloca gestion-estrategica-ti-380e3b6dfc6f.json en backend/ o define GOOGLE_CREDENTIALS_JSON como variable de entorno.'
+        );
+      }
+    } else {
+      auth = new google.auth.GoogleAuth({
+        keyFile: credentialsPath,
+        scopes: SCOPES,
+      });
     }
-    auth = new google.auth.GoogleAuth({
-      keyFile: credentialsPath,
-      scopes: SCOPES,
-    });
   }
 
   const sheets = google.sheets({ version: 'v4', auth });
